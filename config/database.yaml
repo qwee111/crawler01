@@ -1,0 +1,58 @@
+# 数据库配置文件
+
+# Redis配置
+redis:
+  url: "redis://localhost:6379/0"
+  password: ""
+  max_connections: 100
+  socket_timeout: 30
+  socket_connect_timeout: 30
+  retry_on_timeout: true
+  health_check_interval: 30
+
+# MongoDB配置
+mongodb:
+  uri: "mongodb://localhost:27017/"
+  database: "crawler_db"
+  username: ""
+  password: ""
+  collections:
+    raw_data: "raw_epidemic_data"
+    processed_data: "processed_epidemic_data"
+    logs: "crawler_logs"
+    tasks: "crawler_tasks"
+
+# PostgreSQL配置
+postgresql:
+  host: "localhost"
+  port: 5432
+  database: "crawler_db"
+  username: "postgres"
+  password: "password"
+  pool_size: 20
+  max_overflow: 30
+  pool_timeout: 30
+  pool_recycle: 3600
+  
+  # 表配置
+  tables:
+    epidemic_data: "epidemic_data"
+    data_quality: "data_quality_reports"
+    crawler_stats: "crawler_statistics"
+    proxy_stats: "proxy_statistics"
+
+# 连接池配置
+connection_pools:
+  redis:
+    max_connections: 100
+    retry_on_timeout: true
+  
+  mongodb:
+    max_pool_size: 100
+    min_pool_size: 10
+    max_idle_time_ms: 30000
+  
+  postgresql:
+    pool_size: 20
+    max_overflow: 30
+    pool_timeout: 30

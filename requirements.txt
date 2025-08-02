@@ -1,0 +1,74 @@
+# 核心爬虫框架
+scrapy==2.11.0
+scrapy-redis==0.7.3
+scrapy-splash==0.8.0
+
+# 浏览器自动化
+selenium==4.15.2
+webdriver-manager==4.0.1
+
+# 异步任务队列
+celery==5.3.4
+redis==5.0.1
+
+# 数据库连接
+pymongo==4.6.0
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.23
+
+# 数据处理
+pandas==2.1.4
+numpy==1.24.4
+lxml==4.9.3
+beautifulsoup4==4.12.2
+requests==2.31.0
+
+# 图像处理和验证码识别
+Pillow==10.1.0
+pytesseract==0.3.10
+opencv-python==4.8.1.78
+
+# 机器学习（用于验证码识别）
+scikit-learn==1.3.2
+tensorflow==2.15.0
+
+# 监控和指标
+prometheus-client==0.19.0
+psutil==5.9.6
+
+# 配置管理
+pyyaml==6.0.1
+python-dotenv==1.0.0
+
+# 日志处理
+loguru==0.7.2
+
+# 网络工具
+fake-useragent==1.4.0
+pysocks==1.7.1
+
+# 数据验证
+pydantic==2.5.2
+marshmallow==3.20.1
+
+# 时间处理
+python-dateutil==2.8.2
+pytz==2023.3
+
+# 文件监控
+watchdog==3.0.0
+
+# 测试框架
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+
+# 代码质量
+black==23.11.0
+flake8==6.1.0
+isort==5.12.0
+pre-commit==3.6.0
+
+# 开发工具
+ipython==8.18.1
+jupyter==1.0.0

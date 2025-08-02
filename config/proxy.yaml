@@ -1,0 +1,89 @@
+# 代理配置文件
+
+# 代理池配置
+proxy_pool:
+  size: 100
+  validation_timeout: 10
+  validation_interval: 300  # 5分钟
+  max_failures: 3
+  rotation_strategy: "round_robin"  # round_robin, random, least_used
+
+# 代理提供商配置
+providers:
+  # 免费代理源
+  free_proxies:
+    enabled: true
+    sources:
+      - name: "proxy_list_1"
+        url: "https://www.proxy-list.download/api/v1/get?type=http"
+        format: "json"
+        update_interval: 3600
+      
+      - name: "proxy_list_2"
+        url: "https://api.proxyscrape.com/v2/?request=get&protocol=http&timeout=10000&country=all"
+        format: "text"
+        update_interval: 1800
+
+  # 付费代理服务
+  premium_proxies:
+    enabled: false
+    providers:
+      - name: "provider_1"
+        api_url: "https://api.premium-proxy.com/get"
+        api_key: "your_api_key"
+        username: "your_username"
+        password: "your_password"
+        max_concurrent: 50
+
+# 代理验证配置
+validation:
+  test_urls:
+    - "http://httpbin.org/ip"
+    - "http://httpbin.org/headers"
+    - "https://www.google.com"
+  
+  timeout: 10
+  max_retries: 3
+  
+  # 质量评分标准
+  scoring:
+    success_rate_weight: 0.4
+    response_time_weight: 0.3
+    anonymity_weight: 0.2
+    stability_weight: 0.1
+
+# 代理使用策略
+usage_strategy:
+  # 按网站分配代理
+  site_specific:
+    "nhc.gov.cn":
+      proxy_type: "premium"
+      max_concurrent: 5
+      delay_range: [2, 5]
+    
+    "cdc.gov":
+      proxy_type: "free"
+      max_concurrent: 10
+      delay_range: [1, 3]
+  
+  # 默认策略
+  default:
+    proxy_type: "free"
+    max_concurrent: 20
+    delay_range: [1, 2]
+
+# 代理轮换配置
+rotation:
+  strategy: "adaptive"  # fixed, adaptive, random
+  interval: 100  # 请求数
+  failure_threshold: 3  # 失败次数阈值
+  
+# 地理位置配置
+geo_distribution:
+  preferred_countries: ["CN", "US", "JP", "KR"]
+  avoid_countries: ["IR", "KP"]
+  
+# 匿名性要求
+anonymity:
+  level: "anonymous"  # transparent, anonymous, elite
+  check_headers: ["X-Forwarded-For", "X-Real-IP", "Via"]
