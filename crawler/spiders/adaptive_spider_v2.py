@@ -146,10 +146,10 @@ class AdaptiveSpiderV2(RedisSpider):
             if delays.get("randomize_delay", True):
                 self.custom_settings["RANDOMIZE_DOWNLOAD_DELAY"] = True
 
-    def start_requests(self):
-        """生成起始请求"""
-        # 检查是否有配置的起始URL
-        if hasattr(self, "start_urls") and self.start_urls:
+    async def start(self):
+        """生成起始请求（Scrapy 2.13+）：先发本地配置，再监听 Redis 队列"""
+        # 1) 配置的起始URL（可选）
+        if getattr(self, "start_urls", None):
             for url in self.start_urls:
                 logger.info(f"📋 准备请求: {url}")
                 yield scrapy.Request(
@@ -159,30 +159,27 @@ class AdaptiveSpiderV2(RedisSpider):
                     errback=self.handle_error,
                 )
         else:
-            logger.error("❌ 没有配置起始URL")
-            logger.info("💡 请检查以下配置:")
-            logger.info(f"   1. 网站配置文件: config/sites/{self.target_site}.yaml")
-            logger.info(f"   2. start_urls 配置部分")
-            logger.info(f"   3. 当前target_site: {self.target_site}")
-
-            # 尝试从配置文件获取起始URL
+            # 尝试从站点配置补齐 start_urls
             if self.site_config and "start_urls" in self.site_config:
                 start_urls_config = self.site_config["start_urls"]
-                logger.info(f"🔧 从配置文件获取到 {len(start_urls_config)} 个起始URL")
-
-                for url_config in start_urls_config:
-                    url = url_config.get("url")
-                    if url:
-                        logger.info(f"📋 准备请求: {url}")
-                        yield scrapy.Request(
-                            url=url,
-                            callback=self.parse,
-                            meta={
-                                "site_name": self.target_site,
-                                "url_config": url_config,
-                            },
-                            errback=self.handle_error,
-                        )
+                if start_urls_config:
+                    logger.info(f"🔧 从配置文件获取到 {len(start_urls_config)} 个起始URL")
+                    for url_config in start_urls_config:
+                        url = url_config.get("url")
+                        if url:
+                            logger.info(f"📋 准备请求: {url}")
+                            yield scrapy.Request(
+                                url=url,
+                                callback=self.parse,
+                                meta={"site_name": self.target_site, "url_config": url_config},
+                                errback=self.handle_error,
+                            )
+        # 2) 监听 Redis 队列（继承自 RedisSpider / Spider 的 start 实现）
+        try:
+            async for req in super().start():
+                yield req
+        except Exception as e:
+            logger.warning(f"⚠️ Redis 队列不可用或未配置: {e}")
             # 2) 始终监听 Redis 队列（scrapy-redis 默认行为）
         try:
             for req in super().start_requests():
