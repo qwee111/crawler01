@@ -1,0 +1,136 @@
+# 中国疾病预防控制中心网站配置
+site_info:
+  name: "中国疾病预防控制中心"
+  base_url: "http://www.chinacdc.cn"
+  description: "中国疾病预防控制中心数据爬取"
+
+# 目标页面配置
+target_pages:
+  - url: "https://www.chinacdc.cn/jksj/jksj01/"
+    name: "全国法定传染病疫情情况"
+    type: "news_list"
+  - url: "https://www.chinacdc.cn/jksj/xgbdyq/"
+    name: "全国新型冠状病毒感染疫情情况"
+    type: "news_list"
+  - url: "https://www.chinacdc.cn/jksj/jksj02/"
+    name: "重点传染病和突发公共卫生事件风险评估报告"
+    type: "news_list"
+  - url: "https://www.chinacdc.cn/jksj/jksj03/"
+    name: "全球传染病事件风险评估报告"
+    type: "news_list"
+  - url: "https://www.chinacdc.cn/jksj/jksj04_14209/"
+    name: "全国预防接种异常反应监测信息概况"
+    type: "news_list"
+  - url: "https://www.chinacdc.cn/jksj/jksj04_14249/"
+    name: "流感监测周报"
+    type: "news_list"
+  - url: "https://www.chinacdc.cn/jksj/jksj04_14275/"
+    name: "全国急性呼吸道传染病哨点监测情况"
+    type: "news_list"
+  - url: "https://www.chinacdc.cn/jksj/jksj04/"
+    name: "健康报告"
+    type: "news_list"
+  - url: "https://www.chinacdc.cn/jkyj/crb2/"
+    name: "传染病"
+    type: "news_list"
+
+# 浏览器配置
+browser_config:
+  type: "requests"  # 或 "selenium"
+  headless: true
+  timeouts:
+    page_load: 30
+    explicit_wait: 150
+
+# 页面元素选择器配置
+selectors:
+  # 新闻列表选择器
+  news_list:
+    - xpath: "//ul[@class='xw_list']//a"
+    - xpath: "/html/body/div[5]/div[2]/div[2]/ul/li/dl/dd/div/a"
+
+  # 标题选择器
+  title_selectors:
+    - xpath: "//ul[@class='xw_list']//a/text()"
+
+  # 内容选择器
+  content_selectors:
+    - xpath: "//*[@id='articleCon']"
+
+  # 日期选择器
+  date_selectors:
+    - xpath: "//ul[@class='xw_list']//span/text()"
+
+  # 链接选择器
+  link_selectors:
+    - xpath: "//ul[@class='xw_list']//a/@href"
+
+# 爬取策略配置
+crawling_strategy:
+  delays:
+    between_requests: 0.5
+    page_load_wait: 1
+    random_delay: true
+
+  limits:
+    max_pages: 10
+    max_items_per_page: 30
+    max_content_length: 50000
+    min_content_length: 20
+
+  retry:
+    max_attempts: 3
+    retry_delay: 5
+
+# 数据提取规则
+data_extraction:
+  required_fields:
+    - title
+    - content
+    - url
+
+  cleaning_rules:
+    remove_text:
+      - "分享到"
+      - "来源："
+
+    title_max_length: 200
+    content_min_length: 20
+
+# 链接跟进规则
+follow_rules:
+  allow:
+    - ".*\\.shtml$"
+    - ".*\\.html$"
+    - "/cdcmodule/"
+
+  deny:
+    - ".*\\.(jpg|jpeg|png|gif|pdf)$"
+    - "javascript:"
+    - "mailto:"
+
+# 文件保存配置
+file_storage:
+  directories:
+    texts: "texts"
+    data: "data"
+    debug: "debug"
+
+  encoding: "utf-8"
+
+# 请求配置
+request_settings:
+  headers:
+    User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+
+  # 请求延迟
+  download_delay: 3.0
+  randomize_delay: true
+
+  # 重试配置
+  retry_times: 3
+  retry_delay: 10.0
+
+  # 超时设置
+  download_timeout: 30

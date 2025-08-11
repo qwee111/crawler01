@@ -1,0 +1,377 @@
+# 国家卫健委网站数据提取配置
+site_name: "国家卫健委"
+base_url: "http://www.nhc.gov.cn"
+encoding: "utf-8"
+description: "国家卫生健康委员会官方网站数据提取配置"
+
+# 字段提取配置
+fields:
+  # 标题提取
+  title:
+    method: xpath
+    selector: "//h1[@class='article-title']//text() | //h1//text() | //title//text()"
+    type: string
+    required: true
+    description: "文章标题"
+
+  # 内容提取
+  content:
+    method: xpath
+    selector: "//div[@class='article-content']//text() | //div[@class='content']//text() | //div[@id='content']//text()"
+    type: string
+    multiple: true
+    required: true
+    min_length: 50
+    description: "文章正文内容"
+
+  # 发布日期
+  publish_date:
+    method: regex
+    selector: "发布时间[：:]\\s*(\\d{4}[-/年]\\d{1,2}[-/月]\\d{1,2}[日]?)"
+    type: date
+    description: "发布时间"
+
+  # 来源
+  source:
+    method: xpath
+    selector: "//span[@class='source']//text() | //div[@class='source']//text()"
+    type: string
+    description: "信息来源"
+
+  # 作者
+  author:
+    method: xpath
+    selector: "//span[@class='author']//text() | //div[@class='author']//text()"
+    type: string
+    description: "作者信息"
+
+  # 确诊病例数
+  confirmed_cases:
+    method: regex
+    selector: "确诊病例[：:]?\\s*(\\d+)\\s*例"
+    type: integer
+    description: "确诊病例数"
+
+  # 死亡病例数
+  death_cases:
+    method: regex
+    selector: "死亡病例[：:]?\\s*(\\d+)\\s*例"
+    type: integer
+    description: "死亡病例数"
+
+  # 治愈病例数
+  recovered_cases:
+    method: regex
+    selector: "治愈[出院]*病例[：:]?\\s*(\\d+)\\s*例"
+    type: integer
+    description: "治愈病例数"
+
+  # 现有确诊
+  active_cases:
+    method: regex
+    selector: "现有确诊[病例]*[：:]?\\s*(\\d+)\\s*例"
+    type: integer
+    description: "现有确诊病例数"
+
+  # 疑似病例
+  suspected_cases:
+    method: regex
+    selector: "疑似病例[：:]?\\s*(\\d+)\\s*例"
+    type: integer
+    description: "疑似病例数"
+
+  # 无症状感染者
+  asymptomatic_cases:
+    method: regex
+    selector: "无症状感染者[：:]?\\s*(\\d+)\\s*例"
+    type: integer
+    description: "无症状感染者数"
+
+  # 地区信息
+  region:
+    method: regex
+    selector: "(北京|上海|天津|重庆|河北|山西|辽宁|吉林|黑龙江|江苏|浙江|安徽|福建|江西|山东|河南|湖北|湖南|广东|海南|四川|贵州|云南|陕西|甘肃|青海|台湾|内蒙古|广西|西藏|宁夏|新疆|香港|澳门)"
+    type: string
+    multiple: true
+    description: "涉及地区"
+
+  # 关键词
+  keywords:
+    method: regex
+    selector: "(疫情|防控|病毒|感染|隔离|检测|疫苗|核酸|抗原|健康码|风险|预警)"
+    type: string
+    multiple: true
+    description: "关键词"
+
+  # 图片链接
+  images:
+    method: xpath
+    selector: "//img/@src"
+    type: string
+    multiple: true
+    description: "图片链接"
+
+  # 附件链接
+  attachments:
+    method: xpath
+    selector: "//a[contains(@href, '.pdf') or contains(@href, '.doc') or contains(@href, '.xls')]/@href"
+    type: string
+    multiple: true
+    description: "附件链接"
+
+# 分页配置
+pagination:
+  next_page_xpath: "//a[contains(text(), '下一页') or contains(text(), '下页') or contains(@class, 'next')]/@href"
+  max_pages: 50
+  page_param: "page"
+
+# 链接跟进配置
+follow_links:
+  # 新闻详情页
+  news_detail:
+    xpath: "//a[contains(@href, '/jkj/') or contains(@href, '/xcs/') or contains(@href, '/zwgk/')]/@href"
+    max_depth: 2
+
+  # 政策文件
+  policy:
+    xpath: "//a[contains(@href, '/zwgk/') or contains(@href, '/wjw/')]/@href"
+    max_depth: 1
+
+# 请求配置 - 增强反反爬虫策略
+request_settings:
+  # 请求头轮换策略
+  headers:
+    # 多个User-Agent轮换，模拟不同浏览器和版本
+    User-Agent:
+      - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
+      - "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0"
+      - "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/120.0"
+      - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15"
+
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+    Accept-Language:
+      - "zh-CN,zh;q=0.9,en;q=0.8"
+      - "zh-CN,zh;q=0.9"
+      - "zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3"
+    Accept-Encoding: "gzip, deflate, br"
+    Connection: "keep-alive"
+    Upgrade-Insecure-Requests: "1"
+    Sec-Fetch-Dest: "document"
+    Sec-Fetch-Mode: "navigate"
+    Sec-Fetch-Site: "none"
+    Sec-Fetch-User: "?1"
+    Cache-Control: "max-age=0"
+
+    # 动态Referer策略
+    Referer:
+      - "http://www.nhc.gov.cn/"
+      - "http://www.nhc.gov.cn/xcs/yqtb/"
+      - "https://www.baidu.com/"
+      - "https://www.google.com/"
+
+  # 高级延迟策略
+  delay:
+    base: 3.0          # 基础延迟时间
+    random_range: [2.0, 8.0]  # 随机延迟范围
+    human_like: true   # 启用人类行为模拟
+    exponential_backoff: true  # 启用指数退避
+
+  # 增强重试配置
+  retry:
+    max_attempts: 5
+    base_delay: 10.0
+    max_delay: 300.0
+    exponential_base: 2.0
+    jitter: true       # 添加随机抖动
+
+    # 特定错误的重试策略
+    error_strategies:
+      timeout:
+        max_attempts: 3
+        delay: 15.0
+      connection_error:
+        max_attempts: 5
+        delay: 20.0
+      http_403:
+        max_attempts: 2
+        delay: 60.0
+      http_429:
+        max_attempts: 3
+        delay: 120.0
+
+# 反检测配置
+anti_detection:
+  # WebDriver检测规避
+  webdriver_stealth:
+    enabled: true
+    hide_webdriver: true
+    hide_automation: true
+    disable_blink_features: true
+    remove_navigator_webdriver: true
+
+  # 浏览器指纹伪装
+  browser_fingerprint:
+    randomize_viewport: true
+    randomize_screen_resolution: true
+    randomize_timezone: true
+    randomize_language: true
+    disable_webgl: false
+    disable_canvas_fingerprinting: true
+
+  # JavaScript执行策略
+  javascript:
+    execution_delay: [1.0, 3.0]  # 随机延迟执行
+    random_mouse_movement: true
+    random_scroll: true
+    simulate_human_typing: true
+
+  # 请求模式伪装
+  request_patterns:
+    randomize_order: true        # 随机化请求顺序
+    simulate_browsing: true      # 模拟真实浏览行为
+    load_resources: true         # 加载CSS/JS等资源
+    follow_redirects: true       # 跟随重定向
+
+# 代理配置
+proxy_settings:
+  enabled: true
+  rotation_strategy: "round_robin"  # 轮换策略: round_robin, random, failover
+
+  # 代理池配置
+  proxy_pools:
+    - type: "http"
+      servers:
+        - "http://proxy1.example.com:8080"
+        - "http://proxy2.example.com:8080"
+      auth:
+        username: "user"
+        password: "pass"
+
+    - type: "socks5"
+      servers:
+        - "socks5://proxy3.example.com:1080"
+
+  # 代理健康检查
+  health_check:
+    enabled: true
+    interval: 300  # 5分钟检查一次
+    timeout: 10
+    test_url: "http://httpbin.org/ip"
+
+  # 代理失败处理
+  failure_handling:
+    max_failures: 3
+    blacklist_duration: 1800  # 30分钟
+    fallback_to_direct: true
+
+# 会话管理
+session_management:
+  # Cookie管理
+  cookies:
+    persist: true
+    file_path: "cookies/nhc_cookies.json"
+    domain_whitelist: ["nhc.gov.cn", ".nhc.gov.cn"]
+    auto_save: true
+
+  # 会话保持策略
+  session_persistence:
+    enabled: true
+    max_idle_time: 1800  # 30分钟
+    refresh_interval: 900  # 15分钟刷新
+
+  # 验证码处理
+  captcha_handling:
+    enabled: true
+    service: "manual"  # manual, 2captcha, anticaptcha
+    max_attempts: 3
+    timeout: 300
+
+# 监控和告警
+monitoring:
+  # 成功率监控
+  success_rate:
+    threshold: 0.8
+    window_size: 100
+    alert_enabled: true
+
+  # 速率监控
+  rate_limiting:
+    requests_per_minute: 10
+    requests_per_hour: 300
+    adaptive: true  # 根据响应时间自适应调整
+
+  # 错误监控
+  error_tracking:
+    log_errors: true
+    alert_on_consecutive_failures: 5
+    error_rate_threshold: 0.3
+
+# 数据清洗配置
+cleaning:
+  # 文本清洗
+  text:
+    remove_html: true
+    remove_special_chars: false
+    max_length: 10000
+    min_length: 10
+
+  # 数字清洗
+  number:
+    min_value: 0
+    max_value: 1000000
+    as_integer: true
+
+  # 日期清洗
+  date:
+    format: "%Y-%m-%d"
+
+# 数据验证配置
+validation:
+  required_fields:
+    - title
+    - content
+    - url
+
+  field_rules:
+    title:
+      min_length: 5
+      max_length: 200
+
+    content:
+      min_length: 50
+      max_length: 50000
+
+    confirmed_cases:
+      min_value: 0
+      max_value: 1000000
+
+    death_cases:
+      min_value: 0
+      max_value: 100000
+
+# 质量评估配置
+quality:
+  weights:
+    completeness: 0.3
+    accuracy: 0.3
+    consistency: 0.2
+    timeliness: 0.1
+    validity: 0.1
+
+  thresholds:
+    min_score: 0.6
+    warning_score: 0.7
+    good_score: 0.8
+
+# 存储配置
+storage:
+  collection_name: "nhc_data"
+  indexes:
+    - field: "publish_date"
+      order: -1
+    - field: "region"
+      order: 1
+    - field: "confirmed_cases"
+      order: -1

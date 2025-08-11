@@ -8,21 +8,34 @@ Scrapy中间件模块
 - 重试中间件
 """
 
-import random
 import logging
-from scrapy import signals
-from scrapy.downloadermiddlewares.retry import RetryMiddleware
-from scrapy.downloadermiddlewares.useragent import UserAgentMiddleware
-from scrapy.exceptions import NotConfigured
-from itemadapter import is_item, ItemAdapter
+import random
 
+from itemadapter import ItemAdapter, is_item
+from scrapy import signals
+from scrapy.downloadermiddlewares.retry import RetryMiddleware as BaseRetryMiddleware
+from scrapy.downloadermiddlewares.useragent import (
+    UserAgentMiddleware as BaseUserAgentMiddleware,
+)
+from scrapy.exceptions import NotConfigured
+
+# 导入Twisted异常类型
+from twisted.internet import defer
+from twisted.internet.error import (
+    ConnectError,
+    ConnectionDone,
+    ConnectionLost,
+    ConnectionRefusedError,
+    DNSLookupError,
+    TCPTimedOutError,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class CrawlerSpiderMiddleware:
     """爬虫中间件"""
-    
+
     @classmethod
     def from_crawler(cls, crawler):
         # This method is used by Scrapy to create your spiders.
@@ -62,12 +75,12 @@ class CrawlerSpiderMiddleware:
             yield r
 
     def spider_opened(self, spider):
-        spider.logger.info('Spider opened: %s' % spider.name)
+        spider.logger.info("Spider opened: %s" % spider.name)
 
 
 class CrawlerDownloaderMiddleware:
     """下载器中间件"""
-    
+
     @classmethod
     def from_crawler(cls, crawler):
         # This method is used by Scrapy to create your spiders.
@@ -107,89 +120,105 @@ class CrawlerDownloaderMiddleware:
         pass
 
     def spider_opened(self, spider):
-        spider.logger.info('Spider opened: %s' % spider.name)
+        spider.logger.info("Spider opened: %s" % spider.name)
 
 
 class ProxyMiddleware:
     """代理中间件"""
-    
+
     def __init__(self):
         self.proxy_pool = []
         self.current_proxy_index = 0
-    
+
     @classmethod
     def from_crawler(cls, crawler):
         return cls()
-    
+
     def process_request(self, request, spider):
         """为请求设置代理"""
         if self.proxy_pool:
             proxy = self.get_next_proxy()
-            request.meta['proxy'] = proxy
+            request.meta["proxy"] = proxy
             logger.debug(f"使用代理: {proxy}")
         return None
-    
+
     def get_next_proxy(self):
         """获取下一个代理"""
         if not self.proxy_pool:
             return None
-        
+
         proxy = self.proxy_pool[self.current_proxy_index]
         self.current_proxy_index = (self.current_proxy_index + 1) % len(self.proxy_pool)
         return proxy
 
 
-class UserAgentMiddleware(UserAgentMiddleware):
+class CustomUserAgentMiddleware(BaseUserAgentMiddleware):
     """User-Agent中间件"""
-    
-    def __init__(self, user_agent='crawler'):
+
+    def __init__(self, user_agent="crawler"):
         self.user_agent = user_agent
         self.user_agent_list = [
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0',
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15',
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
         ]
-    
+
     @classmethod
     def from_crawler(cls, crawler):
-        o = cls(crawler.settings.get('USER_AGENT'))
+        o = cls(crawler.settings.get("USER_AGENT"))
         return o
-    
+
     def process_request(self, request, spider):
         """随机设置User-Agent"""
         ua = random.choice(self.user_agent_list)
-        request.headers['User-Agent'] = ua
+        request.headers["User-Agent"] = ua
         return None
 
 
-class RetryMiddleware(RetryMiddleware):
+class CustomRetryMiddleware(BaseRetryMiddleware):
     """重试中间件"""
-    
+
+    # 定义需要重试的异常类型
+    EXCEPTIONS_TO_RETRY = (
+        defer.TimeoutError,
+        TimeoutError,
+        DNSLookupError,
+        ConnectionRefusedError,
+        ConnectionDone,
+        ConnectError,
+        ConnectionLost,
+        TCPTimedOutError,
+    )
+
     def __init__(self, settings):
         super().__init__(settings)
-        self.max_retry_times = settings.getint('RETRY_TIMES', 3)
-        self.retry_http_codes = set(int(x) for x in settings.getlist('RETRY_HTTP_CODES'))
-        self.priority_adjust = settings.getint('RETRY_PRIORITY_ADJUST', -1)
-    
+        self.max_retry_times = settings.getint("RETRY_TIMES", 3)
+        self.retry_http_codes = set(
+            int(x) for x in settings.getlist("RETRY_HTTP_CODES")
+        )
+        self.priority_adjust = settings.getint("RETRY_PRIORITY_ADJUST", -1)
+
     @classmethod
     def from_crawler(cls, crawler):
         return cls(crawler.settings)
-    
+
     def process_response(self, request, response, spider):
         """处理响应，决定是否重试"""
-        if request.meta.get('dont_retry', False):
+        if request.meta.get("dont_retry", False):
             return response
-        
+
         if response.status in self.retry_http_codes:
             reason = response_status_message(response.status)
             return self._retry(request, reason, spider) or response
-        
+
         return response
-    
+
     def process_exception(self, request, exception, spider):
         """处理异常，决定是否重试"""
-        if isinstance(exception, self.EXCEPTIONS_TO_RETRY) and not request.meta.get('dont_retry', False):
+        if isinstance(exception, self.EXCEPTIONS_TO_RETRY) and not request.meta.get(
+            "dont_retry", False
+        ):
             return self._retry(request, exception, spider)
 
 

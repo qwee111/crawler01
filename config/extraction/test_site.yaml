@@ -1,0 +1,97 @@
+# 测试网站数据提取配置
+site_name: "测试网站"
+base_url: "http://httpbin.org"
+encoding: "utf-8"
+description: "用于测试的网站配置"
+
+# 字段提取配置
+fields:
+  # 标题提取
+  title:
+    method: xpath
+    selector: "//h1//text() | //title//text()"
+    type: string
+    required: false
+    description: "页面标题"
+
+  # 内容提取
+  content:
+    method: text
+    selector: ""
+    type: string
+    required: false
+    description: "页面内容"
+
+  # JSON数据提取
+  json_data:
+    method: json
+    selector: "origin"
+    type: string
+    required: false
+    description: "JSON响应数据"
+
+  # IP地址提取
+  ip_address:
+    method: regex
+    selector: '"origin":\s*"([^"]+)"'
+    type: string
+    required: false
+    description: "IP地址"
+
+  # User-Agent提取
+  user_agent:
+    method: regex
+    selector: '"User-Agent":\s*"([^"]+)"'
+    type: string
+    required: false
+    description: "用户代理"
+
+  # 状态码
+  status_code:
+    method: custom
+    selector: "response.status"
+    type: integer
+    required: true
+    description: "HTTP状态码"
+
+# 请求配置
+request_settings:
+  headers:
+    User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+
+  delay: 1.0
+  random_delay: true
+  retry_times: 2
+
+# 数据清洗配置
+cleaning:
+  text:
+    remove_html: true
+    max_length: 5000
+    min_length: 1
+
+  number:
+    min_value: 0
+    max_value: 999
+
+# 数据验证配置
+validation:
+  required_fields:
+    - url
+
+  field_rules:
+    status_code:
+      min_value: 100
+      max_value: 599
+
+# 质量评估配置
+quality:
+  weights:
+    completeness: 0.4
+    accuracy: 0.3
+    validity: 0.3
+
+  thresholds:
+    min_score: 0.5
+    good_score: 0.8

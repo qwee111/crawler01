@@ -1,0 +1,245 @@
+# 国家卫健委Firefox爬虫专用配置
+# 基于example.py的策略设计
+
+site_info:
+  name: "国家卫生健康委员会"
+  base_url: "http://www.nhc.gov.cn"
+  description: "国家卫健委官网新闻爬取"
+
+# 目标页面配置
+target_pages:
+  - url: "https://www.nhc.gov.cn/wjw/yqbb/list.shtml"
+    name: "疫情播报"
+    type: "list_page"
+  - url: "https://www.gov.cn/pushinfo/v150203/index.htm"
+    name: "国务院信息"
+    type: "list_page"
+  - url: "https://www.nhc.gov.cn/bgt/gwywj2/new_list.shtml"
+    name: "国务院文件"
+    type: "list_page"
+  - url: "https://www.nhc.gov.cn/wjw/xwdt/list.shtml"
+    name: "新闻动态"
+    type: "list_page"
+  - url: "https://www.nhc.gov.cn/wjw/wnsj/list.shtml"
+    name: "工作动态"
+    type: "list_page"
+  - url: "https://www.nhc.gov.cn/wjw/hygq/list.shtml"
+    name: "回应关切"
+    type: "list_page"
+  - url: "https://www.nhc.gov.cn/wjw/mtbd/list.shtml"
+    name: "媒体报道"
+
+# Firefox浏览器配置（参考example.py）
+browser_config:
+  type: "firefox"
+  headless: true
+  disable_gpu: true
+
+  # 强制使用Selenium模式
+  force_selenium: true  # 直接使用Selenium，不等待错误
+  skip_scrapy_requests: true  # 跳过Scrapy的HTTP请求
+
+  # 反爬虫设置
+  anti_detection:
+    user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0"
+    disable_automation_flags: true
+    disable_images: true
+    disable_javascript: false
+
+  # 超时设置
+  timeouts:
+    page_load: 30
+    implicit_wait: 10
+    explicit_wait: 150  # 参考example.py的150秒
+
+# 页面元素选择器配置
+selectors:
+  # 新闻列表选择器（按优先级排序）- 支持多种页面结构
+  news_list:
+    - xpath: "/html/body/div[2]/div[2]/ul/li"    # 疫情通报 新闻动态 工作动态 回应关切 媒体报道
+    - xpath: "/html/body/div[3]/div/div/div[2]/div/ul/li"    # 国务院信息
+    - xpath: "/html/body/div[3]/div[2]/ul/li"    # 国务院文件
+
+  # 日期选择器 - 支持多种页面结构
+  date_selectors:
+    - xpath: "/html/body/div[2]/div[2]/ul/li/span"   # 疫情通报 新闻动态 工作动态 回应关切 媒体报道
+    - xpath: "/html/body/div[3]/div/div/div[2]/div/ul/li/h4/span"  # 国务院信息
+    - xpath: "/html/body/div[3]/div[2]/ul/li/span"    # 国务院文件
+
+  # 链接选择器 - 支持多种页面结构
+  link_selectors:
+    - xpath: "/html/body/div[2]/div[2]/ul/li/a/@href"  # 疫情通报 新闻动态 工作动态 回应关切 媒体报道
+    - xpath: "/html/body/div[3]/div/div/div[2]/div/ul/li/h4/a/@href"  # 国务院信息
+    - xpath: "/html/body/div[3]/div[2]/ul/li/a/@href"  # 国务院文件
+
+  # 内容选择器（按优先级排序）- 根据实际详情页结构优化
+  content_selectors:
+    - xpath: "/html/body/div[1]/div[3]/div[2]"  # 疫情通报1 新闻动态 工作动态 回应关切 媒体报道
+    - xpath: "/html/body/div[3]/div[2]"  # 疫情通报2
+    - xpath: "/html/body/div[4]/div/div[2]/table/tbody/tr/td"  # 国务院信息
+    - xpath: "//*[@id='xw_box']"                 # 最常用：详情页2和3都使用这个ID
+    - xpath: "//div[@class='content-body']"      # 详情页1使用的类
+
+# 爬取策略配置
+crawling_strategy:
+  # 延迟设置（参考example.py）
+  delays:
+    between_requests: 0.5    # 请求间延迟
+    page_load_wait: 1        # 页面加载等待
+    window_switch_wait: 0.5  # 窗口切换等待
+    after_click: 0.1         # 点击后延迟（参考example.py）
+
+  # 限制设置 - 生产模式
+  limits:
+    max_pages: 10              # 增加到10页
+    max_items_per_page: 30     # 增加到每页20项
+    max_content_length: 50000   # 增加内容长度限制
+    min_content_length: 50
+
+  # 重试设置
+  retry:
+    max_attempts: 3
+    retry_delay: 2
+
+# 数据提取规则
+data_extraction:
+  # 必需字段
+  required_fields:
+    - date
+    - title
+    - url
+    - content
+
+  # 数据清洗规则
+  cleaning_rules:
+    remove_text:
+      - "分享到"
+      - "来源："
+      - "责任编辑："
+
+    date_formats:
+      - "%Y-%m-%d"
+      - "%Y年%m月%d日"
+      - "%Y/%m/%d"
+
+    title_max_length: 100
+    content_preview_length: 500
+
+# 文件保存配置
+file_storage:
+  # 目录设置
+  directories:
+    texts: "texts"
+    data: "data"
+    debug: "debug"
+
+  # 文件命名
+  naming:
+    text_file: "{date}.txt"
+    json_file: "nhc_news_{count}.json"
+    debug_file: "debug_page_source.html"
+
+  # 编码设置
+  encoding: "utf-8"
+
+# 错误处理配置
+error_handling:
+  # 忽略的错误类型
+  ignore_errors:
+    - "element_not_found"
+    - "timeout_minor"
+
+  # 严重错误（需要停止爬取）
+  critical_errors:
+    - "browser_crash"
+    - "network_failure"
+
+  # 调试模式
+  debug_mode:
+    save_page_source: true
+    verbose_logging: true
+    screenshot_on_error: false
+
+# 数据验证规则
+validation:
+  # 内容验证
+  content_validation:
+    min_title_length: 5
+    min_content_length: 50
+    required_keywords:
+      - "卫健委"
+      - "健康"
+      - "医疗"
+      - "疫情"
+      - "防控"
+
+  # URL验证
+  url_validation:
+    allowed_domains:
+      - "nhc.gov.cn"
+      - "www.nhc.gov.cn"
+      - "www.gov.cn"
+
+    blocked_extensions:
+      - ".pdf"
+      - ".doc"
+      - ".xls"
+      - ".zip"
+
+# 监控和统计
+monitoring:
+  # 统计指标
+  metrics:
+    - total_pages_visited
+    - successful_extractions
+    - failed_extractions
+    - average_processing_time
+
+  # 日志级别
+  log_level: "INFO"
+
+  # 进度报告
+  progress_report:
+    enabled: true
+    interval: 5  # 每5个项目报告一次
+
+# 特殊处理规则
+special_rules:
+  # 日期处理
+  date_processing:
+    # 日期偏移（参考example.py中的delta逻辑）
+    offset_days: -1
+    cutoff_date: "2020-01-20"
+
+  # 窗口管理（参考example.py）
+  window_management:
+    close_after_extract: true
+    switch_back_to_main: true
+    max_open_windows: 2
+
+  # 分页处理
+  pagination:
+    next_page_text: "下一页"
+    next_page_selectors:
+      - xpath: "//div[@class='pagination_index']//a[text()='下一页']"
+      - css: ".pagination .next"
+      - xpath: "//a[contains(text(), '下一页')]"
+
+# 输出格式配置
+output_format:
+  json:
+    indent: 2
+    ensure_ascii: false
+    include_metadata: true
+
+  text:
+    include_header: true
+    separator: "\n---\n"
+
+  csv:
+    columns:
+      - date
+      - title
+      - url
+      - content_preview
+    encoding: "utf-8-sig"

@@ -1,0 +1,178 @@
+# 北京市疾病预防控制中心网站配置
+site_info:
+  name: "北京市疾病预防控制中心"
+  description: "北京市疾控中心官网数据爬取"
+  domains:
+    - "bjcdc.org"
+    - "www.bjcdc.org"
+  base_url: "https://www.bjcdc.org"
+  encoding: "utf-8"
+  language: "zh-CN"
+
+# 目标页面配置
+start_urls:
+  - url: "https://www.bjcdc.org/cdcmodule/jkdt/bsxw/index.shtml"
+    name: "中心要闻"
+    type: "list_page"
+  - url: "https://www.bjcdc.org/cdcmodule/jkdt/jcdt/index.shtml"
+    name: "基层动态"
+    type: "list_page"
+
+# 页面类型检测配置
+detection:
+  page_types:
+    list_page:
+      url_patterns:
+        - ".*/index\\.shtml$"
+        - ".*/list.*\\.shtml$"
+      content_features:
+        min_links: 5
+        keywords: ["要闻", "动态", "新闻"]
+      structure_features:
+        required_selectors:
+          - "//*[contains(@class, 'content_list')]//li"
+        min_elements:
+          "//*[contains(@class, 'content_list')]//li//a": 3
+
+    detail_page:
+      url_patterns:
+        - ".*/\\d+\\.shtml$"
+        - ".*article.*"
+      content_features:
+        min_content_length: 500
+      structure_features:
+        required_selectors:
+          - "//*[contains(@class, 'article')]//div[contains(@class, 'article_detail_con')]//p"
+
+# 数据提取配置
+extraction:
+  # 通用字段提取
+  fields:
+    title:
+      method: xpath
+      selector: "//title/text() | //p[@class='content_rt_top']/text() | //h1/text()"
+      type: string
+      required: true
+      description: "页面标题"
+
+    content:
+      method: xpath
+      selector: "//div[@class='article_detail_con']//p/text() | //div[@class='content']//p/text()"
+      type: string
+      multiple: true
+      required: false
+      description: "页面内容"
+
+    publish_date:
+      method: xpath
+      selector: "//span[@class='time']/text() | //div[@class='date']/text() | //*[contains(@class,'date')]/text()"
+      type: date
+      required: false
+      description: "发布时间"
+
+  # 列表页特定配置
+  list_page:
+    fields:
+      page_title:
+        method: xpath
+        selector: "/html/body/div[2]/div/div[3]/p/text()"
+        type: string
+        required: true
+
+    list_items:
+      container: "ul.content_list li"
+      max_items: 50
+      fields:
+        title:
+          method: css
+          selector: "a"
+          attr: text
+        url:
+          method: css
+          selector: "a"
+          attr: href
+        date:
+          method: css
+          selector: "span"
+          attr: text
+
+  # 详情页特定配置
+  detail_page:
+    fields:
+      title:
+        method: xpath
+        selector: "//div[1]/h2/text()"
+        type: string
+        required: true
+
+      content:
+        method: xpath
+        selector: "/html/body/div[1]/div[2]/div[2]/div/div[2]/p/text()"
+        type: string
+        multiple: true
+        required: true
+
+      source:
+        method: xpath
+        selector: "/html/body/div[1]/div[2]/div[2]/div/div[1]/p/span[3]/b/text()"
+        type: string
+        required: false
+
+# 请求配置
+request:
+  headers:
+    User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+    Accept-Language: "zh-CN,zh;q=0.9,en;q=0.8"
+
+  delays:
+    download_delay: 2.0
+    randomize_delay: true
+    random_range: [1.0, 3.0]
+
+  retry:
+    retry_times: 3
+    retry_delay: 5.0
+
+# 数据清洗配置
+cleaning:
+  text:
+    remove_html: true
+    remove_special_chars: false
+    max_length: 50000
+    min_length: 5
+
+  urls:
+    convert_to_absolute: true
+    validate_urls: true
+
+  dates:
+    format: "%Y-%m-%d"
+    timezone: "Asia/Shanghai"
+
+# 数据验证配置
+validation:
+  required_fields:
+    - title
+    - url
+
+  field_rules:
+    title:
+      min_length: 5
+      max_length: 200
+
+    content:
+      min_length: 20
+      max_length: 100000
+
+    url:
+      pattern: "^https?://"
+
+# 存储配置
+storage:
+  collection_name: "bjcdc_data"
+  indexes:
+    - field: "publish_date"
+      order: -1
+    - field: "url"
+      unique: true

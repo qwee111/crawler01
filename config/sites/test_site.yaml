@@ -1,0 +1,85 @@
+# 测试网站配置
+site_name: "测试网站"
+description: "用于测试自适应爬虫的测试网站配置"
+base_url: "http://httpbin.org"
+
+# 允许的域名
+allowed_domains:
+  - "httpbin.org"
+
+# 请求设置
+request_settings:
+  download_delay: 1
+  concurrent_requests: 1
+  user_agent: "TestAdaptiveSpider/1.0"
+  headers:
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+    Accept-Language: "en-US,en;q=0.5"
+
+# 起始URL配置
+start_urls:
+  - url: "http://httpbin.org/html"
+    type: "test_page"
+    description: "HTML测试页面"
+  - url: "http://httpbin.org/json"
+    type: "json_page"
+    description: "JSON测试页面"
+
+# 数据字段提取规则
+fields:
+  # 页面类型
+  page_type:
+    method: "custom"
+    default: "test_page"
+
+  # 页面标题
+  title:
+    method: "css"
+    selector: "title, h1"
+    attr: "text"
+    default: "Test Page"
+
+  # 页面内容
+  content:
+    method: "css"
+    selector: "body, p"
+    attr: "text"
+    multiple: true
+    default: []
+
+  # 链接数量
+  link_count:
+    method: "css"
+    selector: "a"
+    multiple: true
+    default: []
+
+  # 响应头信息（如果是JSON）
+  json_data:
+    method: "custom"
+    default: null
+
+# 链接提取规则
+links:
+  # 测试链接
+  test_links:
+    selector: "a"
+    attr: "href"
+
+# 链接跟进规则
+follow:
+  # 允许跟进的URL模式
+  allow:
+    - "httpbin\\.org/.*"
+
+  # 禁止跟进的URL模式
+  deny:
+    - ".*\\.(jpg|jpeg|png|gif|pdf)$"
+
+# 数据验证规则
+validation:
+  required_fields:
+    - "url"
+    - "page_type"
+
+  min_content_length: 0

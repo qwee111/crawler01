@@ -1,0 +1,53 @@
+{
+  "metadata": {
+    "analysis_time": "2025-08-04T14:08:48.401140",
+    "data_count": 4,
+    "analyzer_version": "1.0"
+  },
+  "time_trends": {
+    "dates": [
+      "2025-08-04"
+    ],
+    "counts": [
+      4
+    ],
+    "disease_trends": {}
+  },
+  "disease_distribution": {
+    "categories": {},
+    "keywords": {},
+    "top_categories": {},
+    "top_keywords": {}
+  },
+  "geographic_distribution": {
+    "location_counts": {},
+    "location_diseases": {},
+    "top_locations": {}
+  },
+  "content_quality": {
+    "total_items": 4,
+    "items_with_title": 0,
+    "items_with_content": 0,
+    "items_with_date": 4,
+    "items_with_disease_keywords": 0,
+    "avg_title_length": 0,
+    "avg_content_length": 0,
+    "disease_relevance_rate": 0.0
+  },
+  "summary": {
+    "key_findings": [
+      "数据疾病相关性较低，建议调整爬取策略"
+    ],
+    "recommendations": [
+      "定期监控疾病趋势变化",
+      "重点关注高发地区的疫情动态",
+      "建立疾病预警机制"
+    ],
+    "data_insights": {
+      "total_analyzed": 4,
+      "disease_relevance": "0.0%",
+      "top_disease_category": "N/A",
+      "most_active_district": "N/A"
+    }
+  }
+}
