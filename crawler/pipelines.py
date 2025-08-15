@@ -12,6 +12,7 @@
 import hashlib
 import json
 import logging
+import re
 
 from itemadapter import ItemAdapter
 from scrapy.exceptions import DropItem
@@ -126,6 +127,103 @@ class DuplicatesPipeline:
 
         fingerprint_string = "|".join(fingerprint_data)
         return hashlib.md5(fingerprint_string.encode()).hexdigest()
+
+class ContentUpdatePipeline:
+    """基于内容指纹的更新检测与去重（分布式，Redis原子CAS）。
+
+    - 对 item['content'] 做规范化后计算 SHA256 指纹
+    - Redis HASH: content_fp:<site>，field=sha1(url)，value=sha256(content)
+    - Lua 原子脚本返回码：
+        1 => created（首次出现）
+        2 => modified（内容变化）
+        0 => unchanged（无变化，丢弃）
+    """
+
+    def __init__(self, redis_url: str = None):
+        self.redis_url = redis_url
+        self.redis = None
+        self.lua = None
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        redis_url = crawler.settings.get("REDIS_URL")
+        pipe = cls(redis_url)
+        pipe._connect()
+        return pipe
+
+    def _connect(self):
+        try:
+            import redis
+
+            self.redis = redis.from_url(self.redis_url)
+            self.redis.ping()
+            # 注册Lua脚本
+            script = """
+            local key = KEYS[1]
+            local field = ARGV[1]
+            local newv = ARGV[2]
+            local oldv = redis.call('HGET', key, field)
+            if (not oldv) then
+                redis.call('HSET', key, field, newv)
+                return 1
+            end
+            if (oldv ~= newv) then
+                redis.call('HSET', key, field, newv)
+                return 2
+            end
+            return 0
+            """
+            self.lua = self.redis.register_script(script)
+        except Exception as e:
+            logger.warning(f"⚠️ ContentUpdatePipeline 无法连接Redis，将降级运行: {e}")
+            self.redis = None
+
+    def _normalize(self, text: str) -> str:
+        if not text:
+            return ""
+        # 简单规范化：去HTML标签残留（若已清洗则基本无影响）、压缩空白
+        try:
+            stripped = "".join(text.split())  # 强压缩空白
+            return stripped
+        except Exception:
+            return text
+
+    def process_item(self, item, spider):
+        if not spider.settings.getbool("CONTENT_DEDUP_ENABLED", True):
+            return item
+        url = item.get("source_url") or item.get("url")
+        content = item.get("content")
+        if not url or content is None:
+            return item
+
+        # 计算指纹
+        ufield = hashlib.sha1(url.encode("utf-8")).hexdigest()
+        cfp = hashlib.sha256(self._normalize(content).encode("utf-8")).hexdigest()
+
+        # Redis 不可用 -> 直接通过（保留 item）
+        if not self.redis or not self.lua:
+            item["dedup_status"] = "unknown"
+            item["content_fingerprint"] = cfp
+            return item
+
+        site = getattr(spider, "target_site", None) or "default"
+        key = f"content_fp:{site}"
+        try:
+            rc = self.lua(keys=[key], args=[ufield, cfp])
+        except Exception as e:
+            logger.warning(f"⚠️ Redis Lua 执行失败，降级通过: {e}")
+            item["dedup_status"] = "unknown"
+            item["content_fingerprint"] = cfp
+            return item
+
+        status = {0: "unchanged", 1: "created", 2: "modified"}.get(int(rc), "unknown")
+        item["dedup_status"] = status
+        item["content_fingerprint"] = cfp
+
+        if status == "unchanged":
+            raise DropItem("内容未变化，丢弃以节省存储")
+        return item
+
 
 
 class MongoPipeline:

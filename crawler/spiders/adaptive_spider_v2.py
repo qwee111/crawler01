@@ -6,11 +6,15 @@
 
 import json
 import logging
+import time
+import asyncio
+import hashlib
 from typing import Any, Dict, Optional
 from urllib.parse import urljoin
 
 import scrapy
 from scrapy_redis.spiders import RedisSpider
+from scrapy_redis import connection
 
 # 导入核心模块
 from crawler.core import ConfigManager, ExtractionEngine, PageAnalyzer, SiteDetector
@@ -138,61 +142,84 @@ class AdaptiveSpiderV2(RedisSpider):
                 req.meta["site"] = self.target_site
             return req
 
-        delays = request_config.get("delays", {})
-        if delays:
-            download_delay = delays.get("download_delay", 2.0)
-            self.custom_settings = self.custom_settings or {}
-            self.custom_settings["DOWNLOAD_DELAY"] = download_delay
-            if delays.get("randomize_delay", True):
-                self.custom_settings["RANDOMIZE_DOWNLOAD_DELAY"] = True
-
     async def start(self):
-        """生成起始请求（Scrapy 2.13+）：先发本地配置，再监听 Redis 队列"""
-        # 1) 配置的起始URL（可选）
-        if getattr(self, "start_urls", None):
-            for url in self.start_urls:
-                logger.info(f"📋 准备请求: {url}")
-                yield scrapy.Request(
-                    url=url,
-                    callback=self.parse,
-                    meta={"site_name": self.target_site},
-                    errback=self.handle_error,
-                )
-        else:
-            # 尝试从站点配置补齐 start_urls
-            if self.site_config and "start_urls" in self.site_config:
-                start_urls_config = self.site_config["start_urls"]
-                if start_urls_config:
-                    logger.info(f"🔧 从配置文件获取到 {len(start_urls_config)} 个起始URL")
-                    for url_config in start_urls_config:
-                        url = url_config.get("url")
+        """生成起始请求（Scrapy 2.13+）：
+        1) 先发本地配置/站点配置的起始URL（列表页，强制刷新）
+        2) 启动基于Redis的列表周期刷新（ZSET）
+        3) 监听Redis队列消费动态种子（兼容RedisSpider）
+        """
+        # 初始化Redis连接（用于刷新/增量识别）
+        try:
+            self.server = connection.get_redis_from_settings(self.crawler.settings)
+        except Exception as e:
+            self.server = None
+            logger.warning(f"⚠️ 无法连接Redis，将以降级模式运行: {e}")
+
+        # 1) 先发本地配置的起始URL（作为列表页强制刷新请求）
+        start_urls = list(getattr(self, "start_urls", []) or [])
+        if not start_urls and self.site_config and "start_urls" in self.site_config:
+            start_urls = [u.get("url") for u in self.site_config.get("start_urls", []) if u.get("url")]
+        for url in start_urls:
+            logger.info(f"📋 列表页初始刷新: {url}")
+            yield scrapy.Request(url=url, callback=self.parse, dont_filter=True, meta={"page_type":"list_page","site_name": self.target_site}, errback=self.handle_error)
+
+        # 2) 列表页周期刷新 - 仅在可用时启用
+        if self.server and self.settings.getbool("LIST_REFRESH_ENABLED", True):
+            site = self.target_site or "default"
+            refresh_key = f"refresh_queue:{site}"
+            # 将起始URL登记进刷新队列（下次刷新时间 = 现在 + interval）
+            interval = int(self.settings.getint("LIST_REFRESH_INTERVAL", 900))
+            for url in start_urls:
+                mid = hashlib.sha1(url.encode("utf-8")).hexdigest()
+                try:
+                    self.server.set(f"list_url:{mid}", url)
+                    self.server.zadd(refresh_key, {mid: time.time() + interval})
+                except Exception as e:
+                    logger.warning(f"⚠️ 列表刷新登记失败: {e}")
+
+            async def refresh_loop():
+                logger.info("🔁 启动列表页刷新协程")
+                while True:
+                    try:
+                        member_score = self.server.zpopmin(refresh_key)
+                        if not member_score:
+                            await asyncio.sleep(5)
+                            continue
+                        member = member_score[0][0]
+                        # Redis返回bytes，需要解码
+                        if isinstance(member, bytes):
+                            member = member.decode("utf-8", errors="ignore")
+                        url = self.server.get(f"list_url:{member}")
                         if url:
-                            logger.info(f"📋 准备请求: {url}")
-                            yield scrapy.Request(
-                                url=url,
-                                callback=self.parse,
-                                meta={"site_name": self.target_site, "url_config": url_config},
-                                errback=self.handle_error,
-                            )
-        # 2) 监听 Redis 队列（继承自 RedisSpider / Spider 的 start 实现）
+                            if isinstance(url, bytes):
+                                url = url.decode("utf-8", errors="ignore")
+                            logger.info(f"⏰ 周期刷新列表: {url}")
+                            yield scrapy.Request(url=url, callback=self.parse, dont_filter=True, meta={"page_type":"list_page","site_name": self.target_site}, errback=self.handle_error)
+                            # 重新安排下一次刷新
+                            try:
+                                self.server.zadd(refresh_key, {member: time.time() + interval})
+                            except Exception as e:
+                                logger.warning(f"⚠️ 刷新队列重入失败: {e}")
+                        else:
+                            logger.debug(f"🔎 未找到列表URL映射: list_url:{member}")
+                    except Exception as e:
+                        logger.warning(f"⚠️ 列表刷新循环异常: {e}")
+                        await asyncio.sleep(5)
+            # 将刷新生成器并入 Scrapy 的异步 start 流
+            async for req in refresh_loop():
+                yield req
+
+        # 3) 监听 Redis 队列（继承自 RedisSpider / Spider 的 start 实现）
         try:
             async for req in super().start():
                 yield req
         except Exception as e:
             logger.warning(f"⚠️ Redis 队列不可用或未配置: {e}")
-            # 2) 始终监听 Redis 队列（scrapy-redis 默认行为）
-        try:
-            for req in super().start_requests():
-                yield req
-        except Exception as e:
-            logger.warning(f"⚠️ Redis 队列不可用或未配置: {e}")
 
     def parse(self, response):
-        """解析页面的主入口"""
+        """解析页面的主入口（支持列表页增量与详情页内容指纹）"""
         try:
             logger.info(f"✅ 开始解析页面: {response.url}")
-            logger.info(f"📊 状态码: {response.status}")
-            logger.info(f"📏 响应大小: {len(response.body)} 字节")
 
             # 检测网站
             site_name = self._detect_site(response)
@@ -202,37 +229,38 @@ class AdaptiveSpiderV2(RedisSpider):
 
             # 分析页面
             page_analysis = self.page_analyzer.analyze_page(response, site_name)
-            logger.info(f"🔍 页面类型: {page_analysis['page_type']}")
+            page_type = page_analysis.get("page_type")
+            logger.info(f"🔍 页面类型: {page_type}")
 
             # 提取数据
-            extracted_data = self.extraction_engine.extract_data(
-                response, site_name, page_analysis
-            )
+            extracted = self.extraction_engine.extract_data(response, site_name, page_analysis)
 
-            # 添加元数据
-            extracted_data.update(
-                {
-                    "spider_name": self.name,
-                    "spider_version": "2.0",
-                    "site_name": site_name,
-                    "page_analysis": page_analysis,
-                    "response_meta": {
-                        "status_code": response.status,
-                        "content_type": response.headers.get(
-                            "Content-Type", b""
-                        ).decode("utf-8", errors="ignore"),
-                        "content_length": len(response.body),
-                        "url": response.url,
-                    },
-                }
-            )
+            # 列表页：只做增量识别与派发
+            if page_type == "list_page":
+                items = extracted.get("items", []) if isinstance(extracted, dict) else []
+                logger.info(f"🧮 列表项数量: {len(items)}")
+                yield from self._handle_list_incremental(response, site_name, items)
+                return
 
-            # 输出数据
-            yield extracted_data
-
-            # 处理链接跟进（如果是列表页）
-            if page_analysis["page_type"] == "list_page":
-                yield from self._follow_links(response, site_name, extracted_data)
+            # 详情页：输出数据项，由 ContentUpdatePipeline 负责“内容指纹去重”
+            if isinstance(extracted, dict):
+                extracted.update(
+                    {
+                        "spider_name": self.name,
+                        "spider_version": "2.0",
+                        "site_name": site_name,
+                        "page_analysis": page_analysis,
+                        "response_meta": {
+                            "status_code": response.status,
+                            "content_type": response.headers.get("Content-Type", b"").decode(
+                                "utf-8", errors="ignore"
+                            ),
+                            "content_length": len(response.body),
+                            "url": response.url,
+                        },
+                    }
+                )
+                yield extracted
 
             logger.info(f"✅ 页面解析完成: {response.url}")
 
@@ -252,6 +280,71 @@ class AdaptiveSpiderV2(RedisSpider):
             return self.target_site
 
         # 自动检测
+        return self.site_detector.detect_site(response.url)
+
+    def _schedule_next_refresh(self, list_url: str, interval: int):
+        if not self.server:
+            return
+        try:
+            site = self.target_site or "default"
+            refresh_key = f"refresh_queue:{site}"
+            mid = hashlib.sha1(list_url.encode("utf-8")).hexdigest()
+            self.server.set(f"list_url:{mid}", list_url)
+            self.server.zadd(refresh_key, {mid: time.time() + interval})
+        except Exception as e:
+            logger.warning(f"⚠️ 列表刷新登记失败: {e}")
+
+    def _handle_list_incremental(self, response, site_name: str, items: list):
+        """增量识别列表中的文章链接并发起请求"""
+        interval = int(
+            (self.site_config.get("update_detection", {}) or {}).get(
+                "list_refresh_interval", self.settings.getint("LIST_REFRESH_INTERVAL", 900)
+            )
+        )
+        self._schedule_next_refresh(response.url, interval)
+
+        links = []
+        for item in items:
+            url = item.get("url") if isinstance(item, dict) else None
+            if not url:
+                continue
+            absolute_url = urljoin(response.url, url)
+            links.append(absolute_url)
+
+        if not links:
+            return
+
+        # Redis 增量：只抓新链接
+        seen_key = f"seen_articles:{site_name or 'default'}"
+        for link in links:
+            if not self.server:
+                # 降级：不使用增量过滤
+                yield scrapy.Request(
+                    url=link,
+                    callback=self.parse,
+                    meta={"site_name": site_name, "page_type": "detail_page"},
+                    errback=self.handle_error,
+                )
+                continue
+            try:
+                uhash = hashlib.sha1(link.encode("utf-8")).hexdigest()
+                if not self.server.sismember(seen_key, uhash):
+                    self.server.sadd(seen_key, uhash)
+                    yield scrapy.Request(
+                        url=link,
+                        callback=self.parse,
+                        meta={"site_name": site_name, "page_type": "detail_page"},
+                        errback=self.handle_error,
+                    )
+            except Exception as e:
+                logger.warning(f"⚠️ Redis 增量识别失败，降级直抓: {e}")
+                yield scrapy.Request(
+                    url=link,
+                    callback=self.parse,
+                    meta={"site_name": site_name, "page_type": "detail_page"},
+                    errback=self.handle_error,
+                )
+
         return self.site_detector.detect_site(response.url)
 
     def _follow_links(self, response, site_name: str, extracted_data: Dict):

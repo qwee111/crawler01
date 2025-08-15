@@ -169,6 +169,12 @@ validation:
       pattern: "^https?://"
 
 # 存储配置
+
+# 更新检测配置（可站点级覆盖）
+update_detection:
+  enable_content_dedup: true
+  list_refresh_interval: 900
+
 storage:
   collection_name: "bjcdc_data"
   indexes:

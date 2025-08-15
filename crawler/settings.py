@@ -111,15 +111,17 @@ DOWNLOADER_MIDDLEWARES = {
 #     'crawler.extensions.PrometheusExtension': 500,
 # }
 
-# Configure item pipelines - 第三阶段增强管道
+# Configure item pipelines - 数据处理管道
 ITEM_PIPELINES = {
-    # 第三阶段数据处理管道
+    # （可选）增强数据处理管道
     "data_processing.enhanced_pipelines.EnhancedExtractionPipeline": 200,
     "data_processing.enhanced_pipelines.DataEnrichmentPipeline": 300,
     "data_processing.enhanced_pipelines.ComprehensiveDataPipeline": 400,
+    # 内容更新检测（在存储前执行）
+    "crawler.pipelines.ContentUpdatePipeline": 590,
     # 存储管道
     "crawler.pipelines.MongoPipeline": 600,
-    # 'crawler.pipelines.PostgresPipeline': 700,  # 暂时禁用（表结构问题）
+    # 'crawler.pipelines.PostgresPipeline': 700,
 }
 
 # Enable autothrottling
@@ -137,12 +139,20 @@ HTTPCACHE_IGNORE_HTTP_CODES = [503, 504, 505, 500, 403, 404, 408, 429]
 
 # Redis settings for Scrapy-Redis
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+# 可选Redis参数（容错与保活）
+REDIS_PARAMS = {
+    "socket_timeout": int(os.getenv("REDIS_SOCKET_TIMEOUT", 5)),
+    "retry_on_timeout": True,
+    "health_check_interval": 30,
+}
 
 # 使用 Redis 调度器（已启用）
-# SCHEDULER = "scrapy_redis.scheduler.Scheduler"
+SCHEDULER = "scrapy_redis.scheduler.Scheduler"
 
-# 通过 Redis 去重，确保多进程/多实例共享去重指纹
-DUPEFILTER_CLASS = "scrapy_redis.dupefilter.RFPDupeFilter"
+# 按站点共享的请求去重（自定义去重器）
+DUPEFILTER_CLASS = "crawler.dupefilters.SiteAwareRFPDupeFilter"
+# 键名格式，可按需覆盖（如按站点分组）
+SITE_AWARE_DUPEFILTER_KEY_FMT = "dupefilter:%(spider)s:%(site)s"
 
 # Default requests serializer is pickle, but it can be changed to any module
 # with loads and dumps functions. Note that pickle is not compatible between
@@ -160,6 +170,11 @@ SCHEDULER_QUEUE_CLASS = "scrapy_redis.queue.PriorityQueue"
 
 # Or the FIFO queue.
 # SCHEDULER_QUEUE_CLASS = 'scrapy_redis.queue.FifoQueue'
+
+# 列表刷新与更新检测配置
+LIST_REFRESH_ENABLED = True
+LIST_REFRESH_INTERVAL = int(os.getenv("LIST_REFRESH_INTERVAL", 900))  # 秒
+CONTENT_DEDUP_ENABLED = True
 
 # Database settings
 # 构建MongoDB连接URI，支持容器环境
