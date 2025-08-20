@@ -89,8 +89,10 @@ class ConfigurableExtractor:
             logger.error(f"配置加载失败: {e}")
             return {}
 
-    def extract_data(self, response, site_name: str) -> Dict[str, Any]:
-        """根据配置提取数据"""
+    def extract_data(
+        self, response, site_name: str, page_type: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """根据配置提取数据（支持 extraction.section 与页面类型覆盖）"""
         if not self.config:
             logger.warning("未加载配置，使用默认提取")
             return self._default_extract(response)
@@ -484,7 +486,8 @@ class ExtractionConfigManager:
 
     def __init__(self):
         self.configs = {}
-        self.config_dirs = ["config/extraction", "config/sites"]
+        # 统一配置来源到 config/sites 目录，避免与 config/extraction 冲突
+        self.config_dirs = ["config/sites"]
         self.load_all_configs()
 
     def load_all_configs(self):
@@ -494,7 +497,7 @@ class ExtractionConfigManager:
         for config_dir in self.config_dirs:
             config_path = Path(config_dir)
             if not config_path.exists():
-                logger.warning(f"配置目录不存在: {config_dir}")
+                logger.warning(f"配置目录不存在(已统一至 config/sites): {config_dir}")
                 continue
 
             # 加载该目录下的所有yaml文件
@@ -524,20 +527,39 @@ class ExtractionConfigManager:
 
         return self.configs.get(site_name, {})
 
-    def extract_data(self, response, site_name: str) -> Dict[str, Any]:
-        """提取数据"""
-        config = self.get_config(site_name)
-
-        if not config:
+    def extract_data(
+        self, response, site_name: str, page_type: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """提取数据（统一从 config/sites/<site>.yaml 的 extraction 节读取字段；支持按页面类型覆盖）"""
+        site_conf = self.get_config(site_name)
+        if not site_conf:
             logger.warning(f"未找到网站配置: {site_name}，使用默认提取")
             return self._default_extract(response)
 
-        logger.info(f"🎯 使用配置提取数据: {site_name}")
+        # 仅使用 extraction 段落作为字段来源
+        extraction_conf = site_conf.get("extraction") or {}
+        fields_conf = extraction_conf.get("fields", {})
+        if page_type and isinstance(extraction_conf.get(page_type), dict):
+            # 如果 extraction.<page_type>.fields 存在，则优先使用
+            pt_fields = extraction_conf.get(page_type, {}).get("fields", {})
+            if pt_fields:
+                fields_conf = pt_fields
 
-        # 创建提取器实例
+        if not fields_conf:
+            logger.warning(f"未在 extraction 中找到字段配置: {site_name}，使用默认提取")
+            return self._default_extract(response)
+
+        logger.info(f"🎯 使用配置提取数据: {site_name} | page_type={page_type or 'n/a'}")
+
+        # 构造规范化配置供提取器使用
+        normalized = {
+            site_name: {
+                "fields": fields_conf,
+                "site_info": site_conf.get("site_info", {}),
+            }
+        }
         extractor = ConfigurableExtractor()
-        extractor.config = {site_name: config}
-
+        extractor.config = normalized
         return extractor.extract_data(response, site_name)
 
     def _default_extract(self, response) -> Dict[str, Any]:

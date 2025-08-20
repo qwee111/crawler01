@@ -107,29 +107,47 @@ class AntiCrawlDetector:
                 return value.decode("utf-8", errors="ignore")
             return str(value)
 
+        # 安全获取文本内容用于分析
+        try:
+            from scrapy.http import TextResponse
+
+            text_content = response.text if isinstance(response, TextResponse) else ""
+        except Exception:
+            text_content = ""
+
         return {
             "status_code": getattr(response, "status", 200),
             "content_length": body_length,
             "content_type": safe_header_get(response.headers, "Content-Type"),
             "server": safe_header_get(response.headers, "Server"),
-            "has_javascript": "javascript" in response.text.lower(),
-            "has_forms": "<form" in response.text.lower(),
+            "has_javascript": "javascript" in text_content.lower(),
+            "has_forms": "<form" in text_content.lower(),
             "title": self._extract_title(response),
         }
 
     def _extract_title(self, response) -> str:
-        """提取页面标题"""
+        """提取页面标题（安全）"""
         try:
+            from scrapy.http import TextResponse
+
+            text = response.text if isinstance(response, TextResponse) else ""
             title_match = re.search(
-                r"<title[^>]*>(.*?)</title>", response.text, re.IGNORECASE | re.DOTALL
+                r"<title[^>]*>(.*?)</title>", text, re.IGNORECASE | re.DOTALL
             )
             return title_match.group(1).strip() if title_match else ""
-        except:
+        except Exception:
             return ""
 
     def _detect_captcha(self, response, request=None) -> Dict:
         """检测验证码"""
-        content = response.text.lower()
+        try:
+            from scrapy.http import TextResponse
+
+            content = (
+                response.text if isinstance(response, TextResponse) else ""
+            ).lower()
+        except Exception:
+            content = ""
         confidence = 0
         suggestions = []
 
@@ -171,7 +189,18 @@ class AntiCrawlDetector:
 
     def _detect_js_challenge(self, response, request=None) -> Dict:
         """检测JavaScript挑战"""
-        content = response.text.lower()
+        try:
+            from scrapy.http import TextResponse
+
+            content = (
+                response.text if isinstance(response, TextResponse) else ""
+            ).lower()
+            text_len = len(
+                (response.text if isinstance(response, TextResponse) else "").strip()
+            )
+        except Exception:
+            content = ""
+            text_len = 0
         confidence = 0
         suggestions = []
 
@@ -193,8 +222,8 @@ class AntiCrawlDetector:
             if re.search(code, content, re.IGNORECASE):
                 confidence += 0.2
 
-        # 检测页面是否几乎为空但有大量JS
-        if len(response.text.strip()) < 1000 and content.count("<script") > 3:
+        # 检测页面是否几乎为空但有大量JS（仅在文本响应时生效）
+        if text_len < 1000 and content.count("<script") > 3:
             confidence += 0.4
 
         detected = confidence > 0.5
@@ -217,7 +246,14 @@ class AntiCrawlDetector:
 
     def _detect_rate_limit(self, response, request=None) -> Dict:
         """检测频率限制"""
-        content = response.text.lower()
+        try:
+            from scrapy.http import TextResponse
+
+            content = (
+                response.text if isinstance(response, TextResponse) else ""
+            ).lower()
+        except Exception:
+            content = ""
         confidence = 0
         suggestions = []
 
@@ -278,7 +314,14 @@ class AntiCrawlDetector:
             r"访问被拒绝",
         ]
 
-        content = response.text.lower()
+        try:
+            from scrapy.http import TextResponse
+
+            content = (
+                response.text if isinstance(response, TextResponse) else ""
+            ).lower()
+        except Exception:
+            content = ""
         for pattern in block_patterns:
             if re.search(pattern, content, re.IGNORECASE):
                 confidence += 0.3
@@ -303,7 +346,14 @@ class AntiCrawlDetector:
 
     def _detect_user_agent_check(self, response, request=None) -> Dict:
         """检测User-Agent检查"""
-        content = response.text.lower()
+        try:
+            from scrapy.http import TextResponse
+
+            content = (
+                response.text if isinstance(response, TextResponse) else ""
+            ).lower()
+        except Exception:
+            content = ""
         confidence = 0
         suggestions = []
 
@@ -343,7 +393,14 @@ class AntiCrawlDetector:
 
     def _detect_cookie_check(self, response, request=None) -> Dict:
         """检测Cookie检查"""
-        content = response.text.lower()
+        try:
+            from scrapy.http import TextResponse
+
+            content = (
+                response.text if isinstance(response, TextResponse) else ""
+            ).lower()
+        except Exception:
+            content = ""
         confidence = 0
         suggestions = []
 
@@ -384,7 +441,14 @@ class AntiCrawlDetector:
 
     def _detect_referer_check(self, response, request=None) -> Dict:
         """检测Referer检查"""
-        content = response.text.lower()
+        try:
+            from scrapy.http import TextResponse
+
+            content = (
+                response.text if isinstance(response, TextResponse) else ""
+            ).lower()
+        except Exception:
+            content = ""
         confidence = 0
         suggestions = []
 
@@ -420,7 +484,14 @@ class AntiCrawlDetector:
 
     def _detect_fingerprint(self, response, request=None) -> Dict:
         """检测浏览器指纹识别"""
-        content = response.text.lower()
+        try:
+            from scrapy.http import TextResponse
+
+            content = (
+                response.text if isinstance(response, TextResponse) else ""
+            ).lower()
+        except Exception:
+            content = ""
         confidence = 0
         suggestions = []
 
@@ -458,7 +529,12 @@ class AntiCrawlDetector:
 
     def _detect_honeypot(self, response, request=None) -> Dict:
         """检测蜜罐陷阱"""
-        content = response.text
+        try:
+            from scrapy.http import TextResponse
+
+            content = response.text if isinstance(response, TextResponse) else ""
+        except Exception:
+            content = ""
         confidence = 0
         suggestions = []
 
@@ -497,7 +573,14 @@ class AntiCrawlDetector:
 
     def _detect_behavior_analysis(self, response, request=None) -> Dict:
         """检测行为分析"""
-        content = response.text.lower()
+        try:
+            from scrapy.http import TextResponse
+
+            content = (
+                response.text if isinstance(response, TextResponse) else ""
+            ).lower()
+        except Exception:
+            content = ""
         confidence = 0
         suggestions = []
 

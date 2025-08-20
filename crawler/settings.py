@@ -114,7 +114,7 @@ DOWNLOADER_MIDDLEWARES = {
 # Configure item pipelines - 数据处理管道
 ITEM_PIPELINES = {
     # （可选）增强数据处理管道
-    "data_processing.enhanced_pipelines.EnhancedExtractionPipeline": 200,
+    # "data_processing.enhanced_pipelines.EnhancedExtractionPipeline": 200,
     "data_processing.enhanced_pipelines.DataEnrichmentPipeline": 300,
     "data_processing.enhanced_pipelines.ComprehensiveDataPipeline": 400,
     # 内容更新检测（在存储前执行）

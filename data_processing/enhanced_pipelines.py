@@ -41,7 +41,13 @@ class EnhancedExtractionPipeline:
     @classmethod
     def from_crawler(cls, crawler):
         config_dir = crawler.settings.get("EXTRACTION_CONFIG_DIR", "config/extraction")
-        return cls(config_dir)
+        # 配置统一到 config/sites，EXTRACTION_CONFIG_DIR 不再生效，仅提示一次
+        try:
+            if isinstance(config_dir, str) and "extraction" in config_dir:
+                logger.warning("EXTRACTION_CONFIG_DIR 已弃用，增强提取统一从 config/sites 加载配置。")
+        except Exception:
+            pass
+        return cls(config_dir=None)
 
     def process_item(self, item, spider):
         """处理数据项"""
@@ -80,8 +86,12 @@ class EnhancedExtractionPipeline:
                 logger.info("⏭️ 模拟响应无内容，跳过增强提取")
                 return item
 
-            # 使用配置化提取器重新提取数据
-            extracted_data = self.extraction_manager.extract_data(response, site_name)
+            # 使用配置化提取器重新提取数据（从 config/sites 的 extraction 段读取，支持页面类型）
+            extracted_data = self.extraction_manager.extract_data(
+                response,
+                site_name,
+                page_type=page_type,
+            )
             logger.info(f"📊 配置化提取结果: {len(extracted_data)} 个字段")
 
             # 合并提取的数据（仅更新非空值，并做字段名兼容映射）
@@ -106,6 +116,25 @@ class EnhancedExtractionPipeline:
             if adapter.get("content") is None and content_val:
                 adapter["content"] = content_val
                 updated_fields += 1
+
+            # 规范化 content：若为列表则合并；若为空但有 raw_html，则提取纯文本填充
+            try:
+                c_val = adapter.get("content")
+                if isinstance(c_val, list):
+                    c_val = " ".join([str(x).strip() for x in c_val if str(x).strip()])
+                    adapter["content"] = c_val
+                if (not adapter.get("content")) and adapter.get("raw_html"):
+                    try:
+                        from bs4 import BeautifulSoup
+
+                        soup = BeautifulSoup(adapter.get("raw_html"), "html.parser")
+                        text_only = " ".join(soup.get_text(separator=" ").split())
+                        if text_only:
+                            adapter["content"] = text_only
+                    except Exception:
+                        pass
+            except Exception:
+                pass
 
             # 更新内容统计（避免与 DataEnrichmentPipeline 重复）
             if adapter.get("content"):
@@ -287,8 +316,15 @@ class ComprehensiveDataPipeline:
         try:
             # 1. 数据清洗
             if self.config.get("enable_cleaning", True) and self.cleaning_pipeline:
+                before_clean = ItemAdapter(item).asdict()
                 item = self.cleaning_pipeline.process_item(item, spider)
                 adapter = ItemAdapter(item)
+                # 若清洗后 content/title 丢失，则回退原值，避免关键信息被清空
+                for key in ("content", "title"):
+                    if (
+                        adapter.get(key) is None or adapter.get(key) == ""
+                    ) and before_clean.get(key):
+                        adapter[key] = before_clean.get(key)
                 self.stats["cleaning_success"] += 1
                 logger.debug(f"数据清洗完成: {adapter.get('url', 'unknown')}")
 

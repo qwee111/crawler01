@@ -1,0 +1,274 @@
+{
+  "https://www.chinacdc.cn/jksj/jksj01/": {
+    "scrapy_default": {
+      "success": true,
+      "status_code": 200,
+      "content_type": "text/html; charset=utf-8",
+      "is_text": true,
+      "response_time": 0.18081450462341309,
+      "content_length": 31310,
+      "headers": {
+        "Date": "Mon, 18 Aug 2025 03:01:52 GMT",
+        "Content-Type": "text/html; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+        "Set-Cookie": "acw_tc=3ccdc15917554861124953404e3e68f9ba36571b2c306501137c46a0e2fa0c;path=/;HttpOnly;Max-Age=1800, SERVERID=776d01352c0ee03bf5222cf856a81bf7|1755486112|1755486112;Path=/",
+        "Last-Modified": "Wed, 06 Aug 2025 13:47:08 GMT",
+        "ETag": "W/\"68935cdc-7a4e\"",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type",
+        "Content-Encoding": "gzip",
+        "Strict-Transport-Security": "max-age=31536000"
+      }
+    },
+    "chrome_browser": {
+      "success": true,
+      "status_code": 200,
+      "content_type": "text/html; charset=utf-8",
+      "is_text": true,
+      "response_time": 0.20584797859191895,
+      "content_length": 31310,
+      "headers": {
+        "Date": "Mon, 18 Aug 2025 03:01:53 GMT",
+        "Content-Type": "text/html; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+        "Set-Cookie": "acw_tc=276aede817554861136923925e0804ec682fcdbf7261266fcf8c0123b39091;path=/;HttpOnly;Max-Age=1800, SERVERID=776d01352c0ee03bf5222cf856a81bf7|1755486113|1755486113;Path=/",
+        "Last-Modified": "Wed, 06 Aug 2025 13:47:08 GMT",
+        "ETag": "W/\"68935cdc-7a4e\"",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type",
+        "Content-Encoding": "gzip",
+        "Strict-Transport-Security": "max-age=31536000"
+      }
+    },
+    "no_br_encoding": {
+      "success": true,
+      "status_code": 200,
+      "content_type": "text/html; charset=utf-8",
+      "is_text": true,
+      "response_time": 0.24730467796325684,
+      "content_length": 31310,
+      "headers": {
+        "Date": "Mon, 18 Aug 2025 03:01:54 GMT",
+        "Content-Type": "text/html; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+        "Set-Cookie": "acw_tc=276aedcb17554861149348587e35c609aaa0616101e54d818e13c9dc5de956;path=/;HttpOnly;Max-Age=1800, SERVERID=776d01352c0ee03bf5222cf856a81bf7|1755486114|1755486114;Path=/",
+        "Last-Modified": "Wed, 06 Aug 2025 13:47:08 GMT",
+        "ETag": "W/\"68935cdc-7a4e\"",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type",
+        "Content-Encoding": "gzip",
+        "Strict-Transport-Security": "max-age=31536000"
+      }
+    }
+  },
+  "https://www.chinacdc.cn/jksj/xgbdyq/": {
+    "scrapy_default": {
+      "success": true,
+      "status_code": 200,
+      "content_type": "text/html; charset=utf-8",
+      "is_text": true,
+      "response_time": 0.18460345268249512,
+      "content_length": 31610,
+      "headers": {
+        "Date": "Mon, 18 Aug 2025 03:01:56 GMT",
+        "Content-Type": "text/html; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+        "Set-Cookie": "acw_tc=3ccdc15717554861161465911e02f8809145e7edd7323cbd09964311bfd000;path=/;HttpOnly;Max-Age=1800, SERVERID=776d01352c0ee03bf5222cf856a81bf7|1755486116|1755486116;Path=/",
+        "Last-Modified": "Wed, 06 Aug 2025 13:37:07 GMT",
+        "ETag": "W/\"68935a83-7b7a\"",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type",
+        "Content-Encoding": "gzip",
+        "Strict-Transport-Security": "max-age=31536000"
+      }
+    },
+    "chrome_browser": {
+      "success": true,
+      "status_code": 200,
+      "content_type": "text/html; charset=utf-8",
+      "is_text": true,
+      "response_time": 0.1603689193725586,
+      "content_length": 31610,
+      "headers": {
+        "Date": "Mon, 18 Aug 2025 03:01:57 GMT",
+        "Content-Type": "text/html; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+        "Set-Cookie": "acw_tc=3ccdc15717554861173231134e02fce584163aea0ff9e95b87203650482bea;path=/;HttpOnly;Max-Age=1800, SERVERID=764d93252d7216745406cab2c76c0f76|1755486117|1755486117;Path=/",
+        "Last-Modified": "Wed, 06 Aug 2025 13:37:07 GMT",
+        "ETag": "W/\"68935a83-7b7a\"",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type",
+        "Content-Encoding": "gzip",
+        "Strict-Transport-Security": "max-age=31536000"
+      }
+    },
+    "no_br_encoding": {
+      "success": true,
+      "status_code": 200,
+      "content_type": "text/html; charset=utf-8",
+      "is_text": true,
+      "response_time": 0.21030282974243164,
+      "content_length": 31610,
+      "headers": {
+        "Date": "Mon, 18 Aug 2025 03:01:58 GMT",
+        "Content-Type": "text/html; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+        "Set-Cookie": "acw_tc=276aedd017554861184923979e76fa427880d25cb3a7a5e9f5396aec28c0c3;path=/;HttpOnly;Max-Age=1800, SERVERID=776d01352c0ee03bf5222cf856a81bf7|1755486118|1755486118;Path=/",
+        "Last-Modified": "Wed, 06 Aug 2025 13:37:07 GMT",
+        "ETag": "W/\"68935a83-7b7a\"",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type",
+        "Content-Encoding": "gzip",
+        "Strict-Transport-Security": "max-age=31536000"
+      }
+    }
+  },
+  "https://www.chinacdc.cn/jksj/jksj02/": {
+    "scrapy_default": {
+      "success": true,
+      "status_code": 200,
+      "content_type": "text/html; charset=utf-8",
+      "is_text": true,
+      "response_time": 0.20215702056884766,
+      "content_length": 24670,
+      "headers": {
+        "Date": "Mon, 18 Aug 2025 03:01:59 GMT",
+        "Content-Type": "text/html; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+        "Set-Cookie": "acw_tc=276aedd317554861197356070e592876be531ab19c2ca1bb23a889506bd689;path=/;HttpOnly;Max-Age=1800, SERVERID=776d01352c0ee03bf5222cf856a81bf7|1755486119|1755486119;Path=/",
+        "Last-Modified": "Thu, 31 Jul 2025 05:20:55 GMT",
+        "ETag": "W/\"688afd37-605e\"",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type",
+        "Content-Encoding": "gzip",
+        "Strict-Transport-Security": "max-age=31536000"
+      }
+    },
+    "chrome_browser": {
+      "success": true,
+      "status_code": 200,
+      "content_type": "text/html; charset=utf-8",
+      "is_text": true,
+      "response_time": 0.1439526081085205,
+      "content_length": 24670,
+      "headers": {
+        "Date": "Mon, 18 Aug 2025 03:02:00 GMT",
+        "Content-Type": "text/html; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+        "Set-Cookie": "acw_tc=276aedd717554861209143071e691873e3769d02f245afbf82e7c4f67f635d;path=/;HttpOnly;Max-Age=1800, SERVERID=764d93252d7216745406cab2c76c0f76|1755486120|1755486120;Path=/",
+        "Last-Modified": "Thu, 31 Jul 2025 05:20:55 GMT",
+        "ETag": "W/\"688afd37-605e\"",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type",
+        "Content-Encoding": "gzip",
+        "Strict-Transport-Security": "max-age=31536000"
+      }
+    },
+    "no_br_encoding": {
+      "success": true,
+      "status_code": 200,
+      "content_type": "text/html; charset=utf-8",
+      "is_text": true,
+      "response_time": 0.2883732318878174,
+      "content_length": 24670,
+      "headers": {
+        "Date": "Mon, 18 Aug 2025 03:02:02 GMT",
+        "Content-Type": "text/html; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+        "Set-Cookie": "acw_tc=276aedd317554861221518642e592e1dc9d89fb8637f0aaf210d4a681fec65;path=/;HttpOnly;Max-Age=1800, SERVERID=776d01352c0ee03bf5222cf856a81bf7|1755486122|1755486122;Path=/",
+        "Last-Modified": "Thu, 31 Jul 2025 05:20:55 GMT",
+        "ETag": "W/\"688afd37-605e\"",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type",
+        "Content-Encoding": "gzip",
+        "Strict-Transport-Security": "max-age=31536000"
+      }
+    }
+  },
+  "https://www.chinacdc.cn/jksj/jksj03/": {
+    "scrapy_default": {
+      "success": true,
+      "status_code": 200,
+      "content_type": "text/html; charset=utf-8",
+      "is_text": true,
+      "response_time": 0.1820371150970459,
+      "content_length": 24334,
+      "headers": {
+        "Date": "Mon, 18 Aug 2025 03:02:03 GMT",
+        "Content-Type": "text/html; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+        "Set-Cookie": "acw_tc=276aedcd17554861233792204e20dc103f02f76b0ee99f1e9a3fef80d5bc17;path=/;HttpOnly;Max-Age=1800, SERVERID=764d93252d7216745406cab2c76c0f76|1755486123|1755486123;Path=/",
+        "Last-Modified": "Fri, 15 Aug 2025 02:36:19 GMT",
+        "ETag": "W/\"689e9d23-5f0e\"",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type",
+        "Content-Encoding": "gzip",
+        "Strict-Transport-Security": "max-age=31536000"
+      }
+    },
+    "chrome_browser": {
+      "success": true,
+      "status_code": 200,
+      "content_type": "text/html; charset=utf-8",
+      "is_text": true,
+      "response_time": 0.17382287979125977,
+      "content_length": 24334,
+      "headers": {
+        "Date": "Mon, 18 Aug 2025 03:02:04 GMT",
+        "Content-Type": "text/html; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+        "Set-Cookie": "acw_tc=276aedd017554861245517778e7703c358562166b106c0e97b48b8e364949f;path=/;HttpOnly;Max-Age=1800, SERVERID=764d93252d7216745406cab2c76c0f76|1755486124|1755486124;Path=/",
+        "Last-Modified": "Fri, 15 Aug 2025 02:36:19 GMT",
+        "ETag": "W/\"689e9d23-5f0e\"",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type",
+        "Content-Encoding": "gzip",
+        "Strict-Transport-Security": "max-age=31536000"
+      }
+    },
+    "no_br_encoding": {
+      "success": true,
+      "status_code": 200,
+      "content_type": "text/html; charset=utf-8",
+      "is_text": true,
+      "response_time": 0.3153340816497803,
+      "content_length": 24334,
+      "headers": {
+        "Date": "Mon, 18 Aug 2025 03:02:05 GMT",
+        "Content-Type": "text/html; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+        "Set-Cookie": "acw_tc=276aedda17554861258738685e6e5c7abfd1754f7ef9f45589b001d9a34a0a;path=/;HttpOnly;Max-Age=1800, SERVERID=776d01352c0ee03bf5222cf856a81bf7|1755486125|1755486125;Path=/",
+        "Last-Modified": "Fri, 15 Aug 2025 02:36:19 GMT",
+        "ETag": "W/\"689e9d23-5f0e\"",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type",
+        "Content-Encoding": "gzip",
+        "Strict-Transport-Security": "max-age=31536000"
+      }
+    }
+  }
+}

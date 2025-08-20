@@ -1,21 +1,27 @@
-# 北京市疾病预防控制中心网站配置
+# 天津市疾病预防控制中心网站配置
 site_info:
-  name: "北京市疾病预防控制中心"
-  description: "北京市疾控中心官网数据爬取"
+  name: "天津市疾病预防控制中心"
+  base_url: "http://www.cdctj.com.cn"
+  description: "天津市疾病预防控制中心数据爬取"
   domains:
-    - "bjcdc.org"
-    - "www.bjcdc.org"
-  base_url: "https://www.bjcdc.org"
+    - "cdctj.com.cn"
+    - "www.cdctj.com.cn"
   encoding: "utf-8"
   language: "zh-CN"
 
 # 目标页面配置
 start_urls:
-  - url: "https://www.bjcdc.org/cdcmodule/jkdt/bsxw/index.shtml"
-    name: "中心要闻"
+  - url: "https://www.cdctj.com.cn/xxpt/yqbg/"
+    name: "全国及天津市法定传染病疫情报告"
     type: "list_page"
-  - url: "https://www.bjcdc.org/cdcmodule/jkdt/jcdt/index.shtml"
-    name: "基层动态"
+  - url: "https://www.cdctj.com.cn/xxpt/yqdt/index.shtml"
+    name: "新型冠状病毒感染疫情动态"
+    type: "list_page"
+  - url: "https://www.cdctj.com.cn/gzdt/ggwsdt/"
+    name: "公共卫生动态"
+    type: "list_page"
+  - url: "https://www.cdctj.com.cn/gzdt/bsgzdt/"
+    name: "重点工作动态"
     type: "list_page"
 
 # 页面类型检测配置
@@ -33,6 +39,7 @@ detection:
           - "//*[contains(@class, 'content_list')]//li"
         min_elements:
           "//*[contains(@class, 'content_list')]//li//a": 3
+
     detail_page:
       url_patterns:
         - ".*/\\d+\\.shtml$"
@@ -53,13 +60,15 @@ extraction:
       type: string
       required: true
       description: "页面标题"
+
     content:
       method: xpath
-      selector: "/html/body/div[1]/div[2]/div[2]/div/div[2]/p/text() | //*[contains(@class, 'article')]//div[contains(@class, 'article_detail_con')]//p/text()"
+      selector: "//div[@class='article_detail_con']//p/text() | //div[@class='content']//p/text()"
       type: string
       multiple: true
       required: false
       description: "页面内容"
+
     publish_date:
       method: xpath
       selector: "//span[@class='time']/text() | //div[@class='date']/text() | //*[contains(@class,'date')]/text()"
@@ -71,13 +80,13 @@ extraction:
   list_page:
     fields:
       page_title:
-        method: xpath
-        selector: "/html/body/div[2]/div/div[3]/p/text()"
-        type: string
+        method: css
+        selector: ".d_over2"
+        attr: text
         required: true
 
     list_items:
-      container: "ul.content_list li"
+      container: ".hanggao30.zi14 a"
       max_items: 50
       fields:
         title:
@@ -97,24 +106,24 @@ extraction:
   detail_page:
     fields:
       title:
-        method: xpath
-        selector: "//div[1]/h2/text()"
-        type: string
+        method: css
+        selector: ".jiacu"
+        attr: text
         required: true
       content:
-        method: xpath
-        selector: "/html/body/div[1]/div[2]/div[2]/div/div[2]/p/text() | //*[contains(@class, 'article')]//div[contains(@class, 'article_detail_con')]//p/text() | //*[contains(@class, 'article')]//div[contains(@class, 'article_detail_con')]//p//text()"
-        type: string
+        method: css
+        selector: ".xiahua"
+        attr: text
         multiple: true
         required: true
       source:
-        method: xpath
-        selector: "/html/body/div[1]/div[2]/div[2]/div/div[1]/p/span[3]/b/text()"
+        method: css
+        selector: ".zi12"
         type: string
         required: false
       publish_date:
-        method: xpath
-        selector: "//*[contains(@class, 'date')]/b[1]/text()"
+        method: css
+        selector: ".zi12"
         type: date
         required: false
 
@@ -176,7 +185,7 @@ update_detection:
   list_refresh_interval: 900
 
 storage:
-  collection_name: "bjcdc_data"
+  collection_name: "cdctj_data"
   indexes:
     - field: "publish_date"
       order: -1

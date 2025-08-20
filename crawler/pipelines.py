@@ -128,6 +128,7 @@ class DuplicatesPipeline:
         fingerprint_string = "|".join(fingerprint_data)
         return hashlib.md5(fingerprint_string.encode()).hexdigest()
 
+
 class ContentUpdatePipeline:
     """基于内容指纹的更新检测与去重（分布式，Redis原子CAS）。
 
@@ -225,7 +226,6 @@ class ContentUpdatePipeline:
         return item
 
 
-
 class MongoPipeline:
     """MongoDB存储管道"""
 
@@ -271,11 +271,18 @@ class MongoPipeline:
 
         try:
             adapter = ItemAdapter(item)
-            collection_name = f"{spider.name}_data"
+            site = adapter.get("site_name") or adapter.get("site")
+            collection_name = f"{site or spider.name}_data"
+            # collection_name = f"{spider.name}_data"
             collection = self.db[collection_name]
 
             logger.info(f"📊 准备存储到集合: {collection_name}")
             logger.info(f"📄 数据项字段数: {len(adapter.asdict())}")
+
+            # 存前校验
+            title = str(adapter.get("title", ""))[:30]
+            clen = len(adapter.get("content", "") or "")
+            logger.info(f"🧾 存前校验: title='{title}' content_len={clen}")
 
             # 插入数据
             result = collection.insert_one(adapter.asdict())

@@ -49,10 +49,10 @@ class ExtractionEngine:
             return {"url": response.url, "error": f"Extraction failed: {e}"}
 
     def _extract_by_config(self, response, config: Dict, page_analysis: Dict) -> Dict:
-        """根据配置提取数据"""
+        """根据配置提取数据（含全局字段兜底）"""
         data = {"url": response.url}
 
-        # 提取字段
+        # 提取字段（类型特定）
         fields = config.get("fields", {})
         for field_name, field_config in fields.items():
             try:
@@ -67,6 +67,34 @@ class ExtractionEngine:
             except Exception as e:
                 logger.error(f"❌ 提取字段 {field_name} 失败: {e}")
                 data[f"{field_name}_error"] = str(e)
+
+        # 兜底：若站点有全局 fields 配置，填补缺失字段
+        try:
+            site_extraction = (
+                self.config_manager.get_extraction_config(
+                    page_analysis.get("site_name", "")
+                )
+                or {}
+            )
+        except Exception:
+            site_extraction = {}
+        global_fields = (
+            site_extraction.get("fields", {})
+            if isinstance(site_extraction, dict)
+            else {}
+        )
+        if global_fields:
+            for field_name, field_config in global_fields.items():
+                if field_name not in data or data.get(field_name) in (None, ""):
+                    try:
+                        value = self._extract_field(
+                            response, field_name, field_config, page_analysis
+                        )
+                        if value is not None:
+                            data[field_name] = value
+                            logger.debug(f"🛟 兜底字段 {field_name}: {str(value)[:100]}...")
+                    except Exception as e:
+                        logger.debug(f"兜底提取 {field_name} 失败: {e}")
 
         # 提取列表项（如果是列表页）
         if page_analysis.get("page_type") == "list_page" and "list_items" in config:
