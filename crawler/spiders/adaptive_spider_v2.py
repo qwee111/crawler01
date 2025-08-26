@@ -116,6 +116,69 @@ class AdaptiveSpiderV2(RedisSpider):
             if delays.get("randomize_delay", True):
                 self.custom_settings["RANDOMIZE_DOWNLOAD_DELAY"] = True
 
+    def _detect_direct_file(self, response) -> Optional[str]:
+        """
+        检测是否为可直接下载的文件（非仅限PDF）。
+        返回文件扩展名（不含点，如 'pdf','docx','xls','zip'），否则返回 None。
+        判定依据：
+        - URL 扩展名命中白名单
+        - 或 Content-Type 命中常见文件类型
+        """
+        try:
+            url = (response.url or "").lower()
+            ctype_bytes = (response.headers.get(b"Content-Type") or b"")
+            ctype = ctype_bytes.decode("utf-8", errors="ignore").lower()
+        except Exception:
+            url, ctype = response.url.lower(), ""
+
+        # 1) 基于URL扩展名
+        try:
+            from urllib.parse import urlparse
+            import os as _os
+            path = urlparse(url).path
+            _, ext = _os.path.splitext(path)
+            ext = (ext or "").lower().lstrip(".")
+        except Exception:
+            ext = ""
+
+        known_exts = {
+            "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+            "csv", "txt", "zip", "rar", "7z", "gz", "tar", "xml", "json"
+        }
+        if ext in known_exts:
+            return ext
+
+        # 2) 基于 Content-Type
+        ctype_map = {
+            "application/pdf": "pdf",
+            "application/msword": "doc",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+            "application/vnd.ms-excel": "xls",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+            "application/vnd.ms-powerpoint": "ppt",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+            "text/csv": "csv",
+            "text/plain": "txt",
+            "application/zip": "zip",
+            "application/x-rar-compressed": "rar",
+            "application/x-7z-compressed": "7z",
+            "application/gzip": "gz",
+            "application/x-tar": "tar",
+            "application/xml": "xml",
+            "text/xml": "xml",
+            "application/json": "json",
+        }
+        for ct, mapped_ext in ctype_map.items():
+            if ct in ctype:
+                return mapped_ext
+
+        # 某些服务使用通用的 octet-stream 作为附件
+        if "application/octet-stream" in ctype:
+            # 尝试再从URL猜测
+            return ext or None
+
+        return None
+
     def make_request_from_data(self, data: bytes):
         """从 Redis 的种子数据创建 Request，兼容 JSON 或 纯字符串 URL"""
         text = data.decode("utf-8").strip()
@@ -268,14 +331,91 @@ class AdaptiveSpiderV2(RedisSpider):
                 response, site_name, page_analysis
             )
 
+
+            # 若为直链可下载文件（不限于PDF），直接产出并返回
+            try:
+                direct_ext = self._detect_direct_file(response)
+                if direct_ext:
+                    title = response.meta.get("list_title") or response.url.split("/")[-1]
+                    publish_date = response.meta.get("list_date")
+                    yield {
+                        "url": response.url,
+                        "title": title,
+                        "publish_date": publish_date,
+                        "file_urls": [response.url],
+                        "content_type": direct_ext,
+                        "spider_name": self.name,
+                        "site_name": site_name,
+                    }
+                    return
+            except Exception:
+                pass
+
             # 列表页：只做增量识别与派发
             if page_type == "list_page":
                 items = (
                     extracted.get("items", []) if isinstance(extracted, dict) else []
                 )
                 logger.info(f"🧮 列表项数量: {len(items)}")
+                if items:
+                    yield from self._handle_list_incremental(response, site_name, items)
+                    return
+
+                # 列表页为空时，尝试使用配置的列表API获取数据
+                api_cfg = (
+                    (self.site_config.get("extraction", {}) or {})
+                    .get("list_page", {})
+                    .get("api")
+                )
+                if api_cfg:
+                    try:
+                        from urllib.parse import urlencode, urljoin
+                        base_url = api_cfg.get("url") or ""
+                        api_url = urljoin(response.url, base_url)
+                        params = api_cfg.get("params") or {}
+                        if params:
+                            api_url = f"{api_url}{'&' if '?' in api_url else '?'}{urlencode(params)}"
+                        headers = api_cfg.get("headers") or {}
+                        logger.info(f"🧪 通过API获取列表: {api_url}")
+                        yield scrapy.Request(
+                            url=api_url,
+                            callback=self.parse_list_api,
+                            headers=headers,
+                            meta={
+                                "site_name": site_name,
+                                "page_type": "list_api",
+                                "api_config": api_cfg,
+                                "origin_url": response.url,
+                            },
+                            dont_filter=True,
+                        )
+                        return
+                    except Exception as e:
+                        logger.warning(f"⚠️ 触发列表API失败: {e}")
+
+                # 无API配置则结束
                 yield from self._handle_list_incremental(response, site_name, items)
                 return
+
+
+            # 详情页：优先检测直链可下载文件（命中则直接产出）
+            try:
+                direct_ext = self._detect_direct_file(response)
+                if direct_ext:
+                    title = response.meta.get("list_title") or response.url.split("/")[-1]
+                    publish_date = response.meta.get("list_date")
+                    yield {
+                        "url": response.url,
+                        "title": title,
+                        "publish_date": publish_date,
+                        "file_urls": [response.url],
+                        "content_type": direct_ext,
+                        "spider_name": self.name,
+                        "site_name": site_name,
+                    }
+                    return
+            except Exception:
+                pass
 
             # 详情页：输出数据项，由 ContentUpdatePipeline 负责“内容指纹去重”
             if isinstance(extracted, dict):
@@ -288,6 +428,19 @@ class AdaptiveSpiderV2(RedisSpider):
                     )
                 except Exception:
                     raw_html = None
+
+                # 若详情页未提到标题或标题异常，优先回退列表标题
+                try:
+                    if not extracted.get("title") or str(extracted.get("title")).strip() == "":
+                        lt = response.meta.get("list_title")
+                        if lt:
+                            extracted["title"] = lt
+                except Exception:
+                    pass
+
+                # 透传列表页日期作为回退发布时间
+                if not extracted.get("publish_date") and response.meta.get("list_date"):
+                    extracted["publish_date"] = response.meta.get("list_date")
 
                 extracted.update(
                     {
@@ -397,26 +550,39 @@ class AdaptiveSpiderV2(RedisSpider):
         )
         self._schedule_next_refresh(response.url, interval)
 
-        links = []
-        for item in items:
-            url = item.get("url") if isinstance(item, dict) else None
+        to_follow = []
+        for it in items:
+            if not isinstance(it, dict):
+                continue
+            url = it.get("url")
             if not url:
                 continue
             absolute_url = urljoin(response.url, url)
-            links.append(absolute_url)
+            to_follow.append({
+                "url": absolute_url,
+                "list_title": it.get("title"),
+                "list_date": it.get("date") or it.get("publish_date"),
+            })
 
-        if not links:
+        if not to_follow:
             return
 
         # Redis 增量：只抓新链接
         seen_key = f"seen_articles:{site_name or 'default'}"
-        for link in links:
+        for entry in to_follow:
+            link = entry["url"]
+            meta = {"site_name": site_name, "page_type": "detail_page"}
+            if entry.get("list_title"):
+                meta["list_title"] = entry["list_title"]
+            if entry.get("list_date"):
+                meta["list_date"] = entry["list_date"]
+
             if not self.server:
                 # 降级：不使用增量过滤
                 yield scrapy.Request(
                     url=link,
                     callback=self.parse,
-                    meta={"site_name": site_name, "page_type": "detail_page"},
+                    meta=meta,
                     errback=self.handle_error,
                 )
                 continue
@@ -427,7 +593,7 @@ class AdaptiveSpiderV2(RedisSpider):
                     yield scrapy.Request(
                         url=link,
                         callback=self.parse,
-                        meta={"site_name": site_name, "page_type": "detail_page"},
+                        meta=meta,
                         errback=self.handle_error,
                     )
             except Exception as e:
@@ -435,11 +601,114 @@ class AdaptiveSpiderV2(RedisSpider):
                 yield scrapy.Request(
                     url=link,
                     callback=self.parse,
-                    meta={"site_name": site_name, "page_type": "detail_page"},
+                    meta=meta,
                     errback=self.handle_error,
                 )
 
         return self.site_detector.detect_site(response.url)
+
+
+    def parse_list_api(self, response):
+        """解析列表API的响应，将其转换成 items 结构。
+        支持三种形式：
+        1) JSON + 列表数组（json_path 指到数组，field_mappings 指定字段名）
+        2) JSON + HTML字符串（json_html_field 指到 HTML 字段，html_item_selector 提取 li）
+        3) 纯 HTML 片段（html_item_selector 提取 li）
+        """
+        import json
+        from parsel import Selector
+
+        site_name = response.meta.get("site_name")
+        api_cfg = response.meta.get("api_config") or {}
+        resp_type = (api_cfg.get("response_type") or "json").lower()
+        items = []
+        self.logger.info(f"resp_type: {resp_type} ")
+
+        def parse_li_elements(elements):
+            out = []
+            for i, el in enumerate(elements):
+                title = el.css("a::attr(title)").get() or (el.css("a::text").get() or "").strip()
+                url = el.css("a::attr(href)").get()
+                li_text = " ".join([t.strip() for t in el.css("::text").getall() if t and t.strip()])
+                import re
+                m = re.search(r"\d{4}-\d{2}-\d{2}", li_text)
+                date = m.group(0) if m else None
+                if not url:
+                    continue
+                out.append({"title": title, "url": url, "date": date, "index": i+1})
+            return out
+
+        try:
+            if resp_type == "json":
+                self.logger.info(f"json")
+
+                data = json.loads(response.text)
+                path = (api_cfg.get("json_path") or "").strip()
+                node = data
+                if path:
+                    for part in path.split('.'):
+                        if not part:
+                            continue
+                        if isinstance(node, dict):
+                            node = node.get(part)
+                        else:
+                            node = None
+                        if node is None:
+                            break
+                if isinstance(node, list):
+                    fmap = api_cfg.get("field_mappings") or {}
+                    url_template = api_cfg.get("url_template")
+                    for i, it in enumerate(node):
+                        try:
+                            title = it.get(fmap.get("title", "title"))
+                            url = it.get(fmap.get("url", "url"))
+                            date = it.get(fmap.get("date", "date"))
+
+                            # 处理URL模板
+                            if url_template and url:
+                                temp = url
+                                url = url_template.format(
+                                    url=temp
+                                )
+
+                            self.logger.info(f"json title: {title}, url: {url}, date: {date}")
+
+
+                            if not url:
+                                continue
+                            items.append({"title": title, "url": url, "date": date, "index": i+1})
+                        except Exception:
+                            continue
+                else:
+                    html_field = (api_cfg.get("json_html_field") or "").strip()
+                    if html_field:
+                        node = data
+                        for part in html_field.split('.'):
+                            if not part:
+                                continue
+                            if isinstance(node, dict):
+                                node = node.get(part)
+                            else:
+                                node = None
+                            if node is None:
+                                break
+                        if isinstance(node, str) and node.strip():
+                            sel = Selector(text=node)
+                            li_sel = (api_cfg.get("html_item_selector") or "div.page-content ul li").strip()
+                            elements = sel.css(li_sel)
+                            items = parse_li_elements(elements)
+            else:
+                sel = Selector(text=response.text)
+                li_sel = (api_cfg.get("html_item_selector") or "div.page-content ul li").strip()
+                elements = sel.css(li_sel)
+                items = parse_li_elements(elements)
+        except Exception as e:
+            self.logger.warning(f"⚠️ 解析列表API失败: {e}")
+
+        self.logger.info(f"🧪 列表API提取到 {len(items)} 项")
+        if items:
+            # 直接复用统一的增量处理逻辑
+            yield from self._handle_list_incremental(response, site_name, items)
 
     def _follow_links(self, response, site_name: str, extracted_data: Dict):
         """跟进链接"""

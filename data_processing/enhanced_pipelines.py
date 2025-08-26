@@ -344,6 +344,16 @@ class ComprehensiveDataPipeline:
                         self.stats["items_dropped"] += 1
                         raise DropItem(f"数据验证失败: {validation_result.get('errors', {})}")
 
+            # 2.5 基于清洗后的标题/URL，确保 article_id 与 title_slug 最终一致
+            try:
+                if self.defer_slug:
+                    self._ensure_article_identity_final(adapter)
+                else:
+                    # 若未推迟，也再确保一次一致性（幂等）
+                    self._ensure_article_identity_final(adapter)
+            except Exception:
+                pass
+
             # 3. 质量评估
             if (
                 self.config.get("enable_quality_assessment", True)
@@ -396,6 +406,20 @@ class ComprehensiveDataPipeline:
 
         return datetime.now().isoformat()
 
+    # ===== 辅助：在清洗之后再次保证身份/slug 一致 =====
+    def _ensure_article_identity_final(self, adapter: ItemAdapter) -> None:
+        import hashlib, re
+        url = str(adapter.get("url", ""))
+        if url and not adapter.get("article_id"):
+            adapter["article_id"] = hashlib.sha1(url.encode("utf-8")).hexdigest()[:16]
+        title = str(adapter.get("title", ""))
+        if title:
+            # 使用与 DataEnrichmentPipeline 相同的清洗规则
+            clean_title = self._clean_title_for_slug(title) if hasattr(self, "_clean_title_for_slug") else title
+            slug = re.sub(r"[\s]+", "-", re.sub(r"[^\w\-\u4e00-\u9fff]", "", clean_title)).strip("-")[:60]
+            if slug:
+                adapter["title_slug"] = slug
+
     def close_spider(self, spider):
         """爬虫关闭时的清理工作"""
         logger.info("📊 ComprehensiveDataPipeline 统计信息:")
@@ -413,6 +437,8 @@ class DataEnrichmentPipeline:
             "enrichment_success": 0,
             "enrichment_failed": 0,
         }
+        # 是否推迟在本阶段生成 title_slug（单次提取、单向传递）
+        self.defer_slug = False
 
         logger.info("🔧 DataEnrichmentPipeline 初始化完成")
 
@@ -423,7 +449,10 @@ class DataEnrichmentPipeline:
                 "ENABLE_DATA_ENRICHMENT", True
             ),
         }
-        return cls(config)
+        inst = cls(config)
+        # 单次提取、单向传递：推迟 slug 生成到清洗后阶段
+        inst.defer_slug = crawler.settings.getbool("SINGLE_PASS_TITLE_FLOW", True)
+        return inst
 
     def process_item(self, item, spider):
         """处理数据项"""
@@ -444,6 +473,30 @@ class DataEnrichmentPipeline:
 
             # 提取关键信息
             self._extract_key_info(adapter)
+
+            # 统一生成文章标识；若开启单次数据流，则此阶段不生成 slug（避免重复提取）
+            try:
+                if self.defer_slug:
+                    self._ensure_article_identity(adapter)
+                    adapter.pop("title_slug", None)
+                else:
+                    self._ensure_article_identity(adapter)
+            except Exception:
+                pass
+
+            # 统一规范化媒体链接（绝对化、列表化、去空/去重）
+            try:
+                self._normalize_media_urls(adapter)
+            except Exception:
+                pass
+
+            # 内容类型识别
+            try:
+                adapter["content_type"] = self._classify_content_type(adapter)
+            except Exception:
+                # 忽略分类失败，默认 rich_text
+                if not adapter.get("content_type"):
+                    adapter["content_type"] = "rich_text"
 
             # 标准化字段名
             self._standardize_field_names(adapter)
@@ -519,3 +572,153 @@ class DataEnrichmentPipeline:
     def get_stats(self) -> Dict[str, int]:
         """获取统计信息"""
         return self.stats.copy()
+
+    def _classify_content_type(self, adapter: ItemAdapter) -> str:
+        """基于图片/文件链接与文本长度的简单分类。
+
+        优先尊重上游已设置的 content_type（例如 spider 对直链文件判定出的 docx/xlsx/zip 等）。
+        若无显式指定，则返回: "pdf" | "image_gallery" | "rich_text"
+        """
+        try:
+            # 若上游（spider/提取器）已设置 content_type，则不覆写
+            existing = adapter.get("content_type")
+            if existing:
+                return str(existing)
+
+            image_urls = adapter.get("image_urls") or []
+            file_urls = adapter.get("file_urls") or []
+            chinese_count = adapter.get("chinese_char_count") or 0
+            url = str(adapter.get("url", ""))
+
+            # 1) 文件优先：若存在文件链接，但未指定类型，回退为 pdf（兼容旧逻辑）
+            if file_urls:
+                # 若URL显示为pdf，标记pdf，否则通用 'file'
+                try:
+                    if any(str(u).lower().endswith(".pdf") for u in file_urls):
+                        return "pdf"
+                    return "file"
+                except Exception:
+                    return "file"
+            if url.lower().endswith(".pdf"):
+                return "pdf"
+
+            # 2) 纯图片：有图且文本很少
+            if image_urls and chinese_count < 20:
+                return "image_gallery"
+
+            # 3) 默认富文本
+            return "rich_text"
+        except Exception:
+            return "rich_text"
+
+    def _normalize_media_urls(self, adapter: ItemAdapter) -> None:
+        """确保 image_urls/file_urls 是绝对URL列表，避免下载管道报 Missing scheme。
+        - 将字符串形式的列表（如 "[...]") 转为列表
+        - 相对路径基于 adapter['response_meta']['url'] 或 adapter['url'] 绝对化
+        - 过滤非 http/https 与空值
+        - 去重并设置 cover_image
+        """
+        import json
+        import ast
+        from urllib.parse import urljoin
+
+        def ensure_list(val):
+            if val is None:
+                return []
+            if isinstance(val, (list, tuple, set)):
+                return list(val)
+            if isinstance(val, str):
+                s = val.strip()
+                if s.startswith("[") and s.endswith("]"):
+                    # 先尝试 JSON，再回退 Python 字面量解析
+                    for loader in (json.loads, ast.literal_eval):
+                        try:
+                            loaded = loader(s)
+                            if isinstance(loaded, (list, tuple, set)):
+                                return list(loaded)
+                            return [str(loaded)]
+                        except Exception:
+                            continue
+                    # 都失败则作为单值处理
+                    return [s]
+                return [s]
+            return [str(val)]
+
+        def normalize_list(urls, base):
+            out = []
+            for u in ensure_list(urls):
+                if not u:
+                    continue
+                u = str(u).strip().strip('"').strip("'")
+                if not u:
+                    continue
+                abs_u = urljoin(base or "", u)
+                if abs_u.startswith("http://") or abs_u.startswith("https://"):
+                    out.append(abs_u)
+            # 去重保序
+            seen = set()
+            result = []
+            for u in out:
+                if u not in seen:
+                    seen.add(u)
+                    result.append(u)
+            return result
+
+        base_url = (
+            (adapter.get("response_meta") or {}).get("url")
+            or adapter.get("url")
+            or ""
+        )
+
+        adapter["image_urls"] = normalize_list(adapter.get("image_urls"), base_url)
+        adapter["file_urls"] = normalize_list(adapter.get("file_urls"), base_url)
+
+        # 封面图：若未设置且存在图片，取第一张
+        if adapter.get("image_urls") and not adapter.get("cover_image"):
+            adapter["cover_image"] = adapter["image_urls"][0]
+
+
+    def _ensure_article_identity(self, adapter: ItemAdapter) -> None:
+        """为资源下载与命名准备稳定标识与人类可读slug。
+        - article_id: 取 url 的 sha1 前16位
+        - title_slug: 标题去非法字符、空白转短横线、最长60
+        """
+        import hashlib, re
+        url = str(adapter.get("url", ""))
+        if url and not adapter.get("article_id"):
+            adapter["article_id"] = hashlib.sha1(url.encode("utf-8")).hexdigest()[:16]
+        title = str(adapter.get("title", ""))
+        if not adapter.get("title_slug"):
+            # 清洗标题，去掉样式串与HTML，优先从首个中文字符开始
+            clean_title = self._clean_title_for_slug(title)
+            # 允许中英文、数字与连字符；空白转-，截断长度
+            slug = re.sub(r"[\s]+", "-", re.sub(r"[^\w\-\u4e00-\u9fff]", "", clean_title))
+            slug = slug.strip("-")[:60]
+            if slug:
+                adapter["title_slug"] = slug
+
+
+    def _clean_title_for_slug(self, title: str) -> str:
+        """去掉样式串/HTML标签，尽量从首个中文字符开始取标题。
+        针对类似 'tdclasshanggao30zi18jiacualigncenter市疾控中心开展...' 的情况。
+        """
+        import re
+        if not title:
+            return ""
+        s = str(title)
+        # 去掉 HTML 标签
+        s = re.sub(r"<[^>]+>", "", s)
+        # 去掉常见样式串（可按需扩展）
+        patterns = [
+            r"^tdclasshanggao\w+",  # 站点样式前缀
+            r"^class\w+",
+            r"^style\w+",
+        ]
+        for p in patterns:
+            s = re.sub(p, "", s, flags=re.IGNORECASE)
+        # 若存在中文，截断到第一个中文字符开始
+        m = re.search(r"[\u4e00-\u9fff]", s)
+        if m:
+            s = s[m.start():]
+        return s.strip()
+

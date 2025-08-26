@@ -41,7 +41,7 @@ def parse_date(value):
             r'(\d{4})年(\d{1,2})月(\d{1,2})日',
             r'(\d{1,2})/(\d{1,2})/(\d{4})',
         ]
-        
+
         for pattern in date_patterns:
             match = re.search(pattern, str(value))
             if match:
@@ -52,7 +52,7 @@ def parse_date(value):
                         # 处理年份在后面的情况
                         if len(year) == 2:
                             year, month, day = day, year, month
-                        
+
                         date_obj = datetime(int(year), int(month), int(day))
                         return date_obj.strftime('%Y-%m-%d')
                 except ValueError:
@@ -62,7 +62,7 @@ def parse_date(value):
 
 class EpidemicDataItem(scrapy.Item):
     """疫情数据项"""
-    
+
     # 基础信息
     source_url = scrapy.Field(
         output_processor=TakeFirst()
@@ -74,7 +74,7 @@ class EpidemicDataItem(scrapy.Item):
     crawl_time = scrapy.Field(
         output_processor=TakeFirst()
     )
-    
+
     # 内容信息
     title = scrapy.Field(
         input_processor=MapCompose(clean_text),
@@ -84,7 +84,7 @@ class EpidemicDataItem(scrapy.Item):
         input_processor=MapCompose(clean_text),
         output_processor=Compose(lambda x: ' '.join(x) if x else '')
     )
-    
+
     # 疫情数据
     region = scrapy.Field(
         input_processor=MapCompose(clean_text),
@@ -106,7 +106,7 @@ class EpidemicDataItem(scrapy.Item):
         input_processor=MapCompose(parse_number),
         output_processor=TakeFirst()
     )
-    
+
     # 时间信息
     report_date = scrapy.Field(
         input_processor=MapCompose(parse_date),
@@ -116,7 +116,7 @@ class EpidemicDataItem(scrapy.Item):
         input_processor=MapCompose(clean_text),
         output_processor=TakeFirst()
     )
-    
+
     # 数据质量
     data_quality_score = scrapy.Field(
         output_processor=TakeFirst()
@@ -124,7 +124,7 @@ class EpidemicDataItem(scrapy.Item):
     validation_status = scrapy.Field(
         output_processor=TakeFirst()
     )
-    
+
     # 元数据
     spider_name = scrapy.Field(
         output_processor=TakeFirst()
@@ -136,7 +136,7 @@ class EpidemicDataItem(scrapy.Item):
 
 class NewsItem(scrapy.Item):
     """新闻数据项"""
-    
+
     # 基础信息
     url = scrapy.Field(
         output_processor=TakeFirst()
@@ -149,7 +149,7 @@ class NewsItem(scrapy.Item):
         input_processor=MapCompose(clean_text),
         output_processor=Compose(lambda x: ' '.join(x) if x else '')
     )
-    
+
     # 发布信息
     publish_date = scrapy.Field(
         input_processor=MapCompose(parse_date),
@@ -163,7 +163,7 @@ class NewsItem(scrapy.Item):
         input_processor=MapCompose(clean_text),
         output_processor=TakeFirst()
     )
-    
+
     # 分类标签
     category = scrapy.Field(
         input_processor=MapCompose(clean_text),
@@ -172,7 +172,7 @@ class NewsItem(scrapy.Item):
     tags = scrapy.Field(
         input_processor=MapCompose(clean_text)
     )
-    
+
     # 统计信息
     view_count = scrapy.Field(
         input_processor=MapCompose(parse_number),
@@ -182,7 +182,7 @@ class NewsItem(scrapy.Item):
         input_processor=MapCompose(parse_number),
         output_processor=TakeFirst()
     )
-    
+
     # 元数据
     crawl_time = scrapy.Field(
         output_processor=TakeFirst()
@@ -191,10 +191,19 @@ class NewsItem(scrapy.Item):
         output_processor=TakeFirst()
     )
 
+    # 多媒体扩展字段
+    content_type = scrapy.Field()
+    content_html = scrapy.Field()
+    image_urls = scrapy.Field()
+    images = scrapy.Field()
+    file_urls = scrapy.Field()
+    files = scrapy.Field()
+    cover_image = scrapy.Field()
+
 
 class PolicyItem(scrapy.Item):
     """政策文件数据项"""
-    
+
     # 基础信息
     url = scrapy.Field(
         output_processor=TakeFirst()
@@ -207,7 +216,7 @@ class PolicyItem(scrapy.Item):
         input_processor=MapCompose(clean_text),
         output_processor=Compose(lambda x: ' '.join(x) if x else '')
     )
-    
+
     # 政策信息
     policy_number = scrapy.Field(
         input_processor=MapCompose(clean_text),
@@ -225,7 +234,7 @@ class PolicyItem(scrapy.Item):
         input_processor=MapCompose(clean_text),
         output_processor=TakeFirst()
     )
-    
+
     # 分类信息
     policy_type = scrapy.Field(
         input_processor=MapCompose(clean_text),
@@ -235,12 +244,12 @@ class PolicyItem(scrapy.Item):
         input_processor=MapCompose(clean_text),
         output_processor=TakeFirst()
     )
-    
+
     # 关键词
     keywords = scrapy.Field(
         input_processor=MapCompose(clean_text)
     )
-    
+
     # 元数据
     crawl_time = scrapy.Field(
         output_processor=TakeFirst()
@@ -252,7 +261,7 @@ class PolicyItem(scrapy.Item):
 
 class StatisticsItem(scrapy.Item):
     """统计数据项"""
-    
+
     # 基础信息
     source_url = scrapy.Field(
         output_processor=TakeFirst()
@@ -261,7 +270,7 @@ class StatisticsItem(scrapy.Item):
         input_processor=MapCompose(clean_text),
         output_processor=TakeFirst()
     )
-    
+
     # 统计数据
     total_cases = scrapy.Field(
         input_processor=MapCompose(parse_number),
@@ -287,13 +296,13 @@ class StatisticsItem(scrapy.Item):
         input_processor=MapCompose(parse_number),
         output_processor=TakeFirst()
     )
-    
+
     # 时间信息
     statistics_date = scrapy.Field(
         input_processor=MapCompose(parse_date),
         output_processor=TakeFirst()
     )
-    
+
     # 元数据
     crawl_time = scrapy.Field(
         output_processor=TakeFirst()

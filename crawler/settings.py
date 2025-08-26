@@ -117,12 +117,23 @@ ITEM_PIPELINES = {
     # "data_processing.enhanced_pipelines.EnhancedExtractionPipeline": 200,
     "data_processing.enhanced_pipelines.DataEnrichmentPipeline": 300,
     "data_processing.enhanced_pipelines.ComprehensiveDataPipeline": 400,
+    # 文件/图片下载（自定义管道，在存储前执行，保证 files/images 字段可用）
+    "crawler.media_pipelines.ArticleFilesPipeline": 520,
+    "crawler.media_pipelines.ArticleImagesPipeline": 530,
     # 内容更新检测（在存储前执行）
     "crawler.pipelines.ContentUpdatePipeline": 590,
     # 存储管道
     "crawler.pipelines.MongoPipeline": 600,
     # 'crawler.pipelines.PostgresPipeline': 700,
 }
+
+# 下载文件与图片的本地存储目录（保持根目录）
+FILES_STORE = "storage/files"
+IMAGES_STORE = "storage/images"
+
+# 可选的图片过滤参数（减少小图标保存）
+# IMAGES_MIN_HEIGHT = 100
+# IMAGES_MIN_WIDTH = 100
 
 # Enable autothrottling
 AUTOTHROTTLE_ENABLED = True

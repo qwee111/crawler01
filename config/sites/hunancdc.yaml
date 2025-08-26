@@ -1,43 +1,19 @@
-# 中国疾病预防控制中心网站配置
+# 湖南省疾病预防控制中心网站配置
 site_info:
-  name: "中国疾病预防控制中心"
-  base_url: "http://www.chinacdc.cn"
-  description: "中国疾病预防控制中心数据爬取"
+  name: "湖南省疾病预防控制中心"
+  base_url: "http://www.hncdc.com"
+  description: "湖南省疾病预防控制中心数据爬取"
   domains:
-    - "chinacdc.cn"
-    - "www.chinacdc.cn"
+    - "hncdc.com"
+    - "www.hncdc.com"
   encoding: "utf-8"
   language: "zh-CN"
 
 # 目标页面配置
 start_urls:
-  - url: "https://www.chinacdc.cn/jksj/jksj01/"
-    name: "全国法定传染病疫情情况"
+  - url: "https://www.hncdc.com/html/web//news/yiqingxinxi/index.html"
+    name: "湖南省法定传染病疫情报告"
     type: "list_page"
-  - url: "https://www.chinacdc.cn/jksj/xgbdyq/"
-    name: "全国新型冠状病毒感染疫情情况"
-    type: "list_page"
-  # - url: "https://www.chinacdc.cn/jksj/jksj02/"
-  #   name: "重点传染病和突发公共卫生事件风险评估报告"
-    # type: "list_page"
-  - url: "https://www.chinacdc.cn/jksj/jksj03/"
-    name: "全球传染病事件风险评估报告"
-    type: "list_page"
-  # - url: "https://www.chinacdc.cn/jksj/jksj04_14209/"
-  #   name: "全国预防接种异常反应监测信息概况"
-  #   type: "list_page"
-  # - url: "https://www.chinacdc.cn/jksj/jksj04_14249/"
-  #   name: "流感监测周报"
-  #   type: "list_page"
-  # - url: "https://www.chinacdc.cn/jksj/jksj04_14275/"
-  #   name: "全国急性呼吸道传染病哨点监测情况"
-  #   type: "list_page"
-  # - url: "https://www.chinacdc.cn/jksj/jksj04/"
-  #   name: "健康报告"
-  #   type: "list_page"
-  # - url: "https://www.chinacdc.cn/jkyj/crb2/"
-  #   name: "传染病"
-  #   type: "list_page"
 
 # 页面类型检测配置
 detection:
@@ -91,42 +67,30 @@ extraction:
       required: false
       description: "发布时间"
 
-    image_urls:
-      method: css
-      selector: "#articleCon img::(attrsrc)"
-      type: url
-      multiple: true
-
-    file_urls:
-      method: css
-      selector: "a[href$='.pdf']::attr(href), a[href*='.pdf']::attr(href)"
-      type: url
-      multiple: true
-
   # 列表页特定配置
   list_page:
     fields:
       page_title:
-        method: xpath
-        selector: "//*[contains(concat( ' ' , @class, ' ' ), concat( ' ', 'erjiCurNav', ' ' ))]//span/text()"
-        type: string
+        method: css
+        selector: ".page-content-title"
+        attr: text
         required: true
 
     list_items:
-      container: "ul.xw_list li"
+      container: ".link-date"
       max_items: 50
       fields:
         title:
           method: css
-          selector: "a"
-          attr: text
+          selector: ".link-desc"
+          attr: title
         url:
           method: css
           selector: "a"
           attr: href
         date:
           method: css
-          selector: "span"
+          selector: ".link-time"
           attr: text
 
   # 详情页特定配置
@@ -134,33 +98,33 @@ extraction:
     fields:
       title:
         method: css
-        selector: "h5 a"
+        selector: ".article-title"
         attr: text
         required: true
       content:
         method: css
-        selector: "#articleCon"
+        selector: ".article-detail"
         attr: text
         multiple: true
         required: true
       source:
-        method: xpath
-        selector: "/html/body/div[4]/div/div[1]/div[2]/div/div[3]/span/text()"
+        method: css
+        selector: ".article-desc"
         type: string
         required: false
       publish_date:
         method: css
-        selector: "em"
+        selector: ".article-desc"
         type: date
         required: false
       image_urls:
         method: css
-        selector: "#articleCon img::attr(src)"
+        selector: ".xiahua img::attr(src)"
         type: url
         multiple: true
       file_urls:
         method: css
-        selector: "a[href$='.pdf']::attr(href), a[href*='.pdf']::attr(href)"
+        selector: "a[href$='.pdf']::attr(href), a[href*='.pdf']::attr(href), a[href*='.doc']::attr(href)"
         type: url
         multiple: true
 
@@ -222,7 +186,7 @@ update_detection:
   list_refresh_interval: 900
 
 storage:
-  collection_name: "chinacdc_data"
+  collection_name: "hunancdc_data"
   indexes:
     - field: "publish_date"
       order: -1

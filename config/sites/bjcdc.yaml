@@ -117,6 +117,16 @@ extraction:
         selector: "//*[contains(@class, 'date')]/b[1]/text()"
         type: date
         required: false
+      image_urls:
+        method: css
+        selector: ".article_detail_con img::attr(src)"
+        type: url
+        multiple: true
+      file_urls:
+        method: css
+        selector: "a[href$='.pdf']::attr(href), a[href*='.pdf']::attr(href)"
+        type: url
+        multiple: true
 
 # 请求配置
 request:

@@ -45,6 +45,7 @@ class DataCleaner:
             "email": self.clean_email,
             "phone": self.clean_phone,
             "html": self.clean_html,
+            "source": self.clean_source,
         }
 
         # 加载资源文件
@@ -125,9 +126,38 @@ class DataCleaner:
 
         for field_name, field_value in data.items():
             try:
+                # 对列表/字典类型字段保持原样，避免被当作文本处理
+                if isinstance(field_value, (list, tuple, set, dict)):
+                    if isinstance(field_value, dict):
+                        cleaned_data[field_name] = field_value
+                    else:
+                        cleaned_data[field_name] = list(field_value)
+                    continue
+
+                # 媒体相关字段直接透传（image_urls/file_urls/images/files 可能被上游规范化为列表）
+                if field_name in {"image_urls", "file_urls", "images", "files"}:
+                    cleaned_data[field_name] = field_value
+                    continue
+
+                # HTML 保留字段（不做去标签处理）
+                if field_name == "content_html":
+                    cleaned_data[field_name] = str(field_value)
+                    continue
+
                 # 获取字段清洗配置
                 field_config = config.get("fields", {}).get(field_name, {})
-                clean_type = field_config.get("type", "text")
+                clean_type = field_config.get("type")
+
+                # 针对常见字段的默认类型兜底
+                if not clean_type:
+                    if field_name in {"publish_date", "pub_date", "date"}:
+                        clean_type = "date"
+                    elif field_name in {"source", "news_source", "来源"}:
+                        clean_type = "source"
+                    elif field_name in {"url", "link"}:
+                        clean_type = "url"
+                    else:
+                        clean_type = "text"
 
                 # 应用清洗规则
                 if clean_type in self.cleaning_rules:
@@ -319,14 +349,93 @@ class DataCleaner:
         """清洗邮箱数据"""
         if email is None:
             return None
-
         email_str = str(email).strip().lower()
-
-        # 邮箱格式验证
         email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+        import re
         if re.match(email_pattern, email_str):
             return email_str
+        return None
 
+    def clean_source(self, value: Any, config: Dict = None) -> Optional[str]:
+        """清洗来源/来源单位字段，仅保留真实来源机构名
+        规则：
+        - 先去标签/脚本，转为纯文本
+        - 丢弃时间、作者、审核、浏览次数、分享等冗余词与后续内容
+        - 在白名单/关键词表中匹配机构名或媒体名
+        - 若出现多个，以第一个命中为准
+        配置：
+        - allow_list: 允许的来源名集合（完全匹配优先）
+        - keywords: 关键词映射（正则或子串 -> 规范名）
+        """
+        if value is None:
+            return None
+
+        cfg = config or {}
+        text = str(value)
+
+        # 1) 去脚本/样式/标签
+        text = self.clean_html(text, {"remove_css_blocks": True})
+
+        # 2) 在去噪前优先提取“来源：”后紧跟的不含空格内容（如：来源：新华网 作者：… -> 新华网）
+        import re
+        m = re.search(r"(?:新闻来源|来源|发布机构)\s*[:：]\s*([^\s]+)", text, flags=re.IGNORECASE)
+        if m:
+            return m.group(1)
+
+        # 3) 去常见冗余片段（顺序很重要）
+        noise_patterns = [
+            r"发布时间\s*[:：].*",
+            r"发布\s*时间\s*[:：].*",
+            r"浏览次数.*",
+            r"分享到.*",
+            r"微信\s*微博.*",
+            r"作者\s*[:：].*",
+            r"审稿\s*[:：].*",
+            r"来源\s*[:：]\s*",
+            r"新闻来源\s*[:：]\s*",
+            r"发布时间为.*",
+        ]
+        for pat in noise_patterns:
+            text = re.sub(pat, "", text, flags=re.IGNORECASE)
+
+        text = text.strip()
+
+        if not text:
+            return None
+
+        # 3) 白名单优先（完全包含匹配）
+        allow_list = set(cfg.get("allow_list", [])) or set()
+        for name in allow_list:
+            if name and name in text:
+                return name
+
+        # 4) 关键词映射（正则或子串）
+        # 默认内置若干常见媒体/机构
+        keyword_map = {
+            r"内蒙古自治区卫生健康委员会": "内蒙古自治区卫生健康委员会",
+            r"职业卫生所-市疾控中心": "职业卫生所-市疾控中心",
+            r"中国新闻网": "中国新闻网",
+            r"省卫生健康委网站|省卫健委网站": "省卫生健康委网站",
+            r"卫生健康委|卫健委": "卫生健康委",
+            r"疾控中心|疾控|CDC": "疾控中心",
+        }
+        # 合并配置里的关键词
+        for k, v in (cfg.get("keywords") or {}).items():
+            keyword_map[k] = v
+
+        for pattern, norm in keyword_map.items():
+            if re.search(pattern, text):
+                return norm
+
+        # 5) 兜底：截短到第一个分隔符之前
+        sep_patterns = [r"\s+作者.*", r"\s+审稿.*", r"\s+发布时间.*", r"\s+来源.*", r"\s+分享.*"]
+        for pat in sep_patterns:
+            text = re.sub(pat, "", text)
+        text = text.strip()
+
+        # 6) 控制长度
+        if 0 < len(text) <= 30:
+            return text
         return None
 
     def clean_phone(self, phone: Any, config: Dict = None) -> Optional[str]:
@@ -350,32 +459,58 @@ class DataCleaner:
         return None
 
     def clean_html(self, html: Any, config: Dict = None) -> str:
-        """清洗HTML数据"""
+        """清洗HTML数据
+        - 先移除 <script>/<style> 整块内容（避免仅去标签后留下 CSS 文本，如 .TRS_Editor {...}）
+        - 再移除 HTML 注释与标签
+        - 解码 HTML 实体
+        - 可选：兜底移除裸露的 CSS 规则块（当上游传入的已是纯文本但仍包含 .class{...} 时）
+        """
         if html is None:
             return ""
 
+        cfg = config or {}
         html_str = str(html)
 
-        # 移除HTML标签
-        clean_text = re.sub(r"<[^>]+>", "", html_str)
+        try:
+            # 1) 移除 <script>/<style> 块（大小写不敏感，多行）
+            if cfg.get("remove_style_script", True):
+                html_str = re.sub(r"(?is)<script[^>]*>.*?</script>", " ", html_str)
+                html_str = re.sub(r"(?is)<style[^>]*>.*?</style>", " ", html_str)
 
-        # 解码HTML实体
-        html_entities = {
-            "&amp;": "&",
-            "&lt;": "<",
-            "&gt;": ">",
-            "&quot;": '"',
-            "&#39;": "'",
-            "&nbsp;": " ",
-        }
+            # 2) 移除 HTML 注释
+            html_str = re.sub(r"(?is)<!--.*?-->", " ", html_str)
 
-        for entity, char in html_entities.items():
-            clean_text = clean_text.replace(entity, char)
+            # 3) 移除所有 HTML 标签
+            clean_text = re.sub(r"<[^>]+>", " ", html_str)
 
-        # 标准化空白字符
-        clean_text = re.sub(r"\s+", " ", clean_text).strip()
+            # 4) 解码HTML实体
+            html_entities = {
+                "&amp;": "&",
+                "&lt;": "<",
+                "&gt;": ">",
+                "&quot;": '"',
+                "&#39;": "'",
+                "&nbsp;": " ",
+            }
+            for entity, char in html_entities.items():
+                clean_text = clean_text.replace(entity, char)
 
-        return clean_text
+            # 5) 兜底：移除裸露的 CSS 规则块（如 .TRS_Editor P{...}），防止作为正文残留
+            if cfg.get("remove_css_blocks", True):
+                clean_text = re.sub(
+                    r"(?is)(?:^[\s\uFEFF\u200B]*|\s)(?:[.#][\w\-\u4e00-\u9fff]+[^{}]{0,80}\{[^{}]*\})",
+                    " ",
+                    clean_text,
+                )
+
+            # 6) 标准化空白字符
+            clean_text = re.sub(r"\s+", " ", clean_text).strip()
+
+            return clean_text
+        except Exception:
+            # 发生异常时，至少返回去标签版本
+            fallback = re.sub(r"<[^>]+>", " ", html_str)
+            return re.sub(r"\s+", " ", fallback).strip()
 
     def remove_stopwords(self, text: str) -> str:
         """移除停用词"""
