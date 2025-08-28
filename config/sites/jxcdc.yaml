@@ -95,7 +95,7 @@ extraction:
 
     api:
       url: "/f/getArticleByCategory"
-      params: { 
+      params: {
         categoryId: 680a2925e9824b12b967b10530f8adc3,
         pageNo: 1,
         pageSize: 10,

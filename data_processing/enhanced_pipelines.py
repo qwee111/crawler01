@@ -721,4 +721,3 @@ class DataEnrichmentPipeline:
         if m:
             s = s[m.start():]
         return s.strip()
-

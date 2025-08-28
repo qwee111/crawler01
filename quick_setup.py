@@ -28,7 +28,7 @@ def create_env_file():
     project_root = Path(__file__).parent
     env_path = project_root / ".env"
     docker_env_path = project_root / "deployment" / "docker" / ".env"
-    
+
     # 生成密码
     postgres_password = generate_password()
     mongodb_password = generate_password()
@@ -36,12 +36,12 @@ def create_env_file():
     mongo_express_password = generate_password()
     pgadmin_password = generate_password()
     minio_password = generate_password()
-    
+
     # 生成密钥
     secret_key = generate_secret_key(64)
     api_token = generate_secret_key(32)
     jwt_secret = generate_secret_key(64)
-    
+
     # 环境变量内容
     env_content = f"""# 自动生成的开发环境配置
 # 生成时间: {os.popen('date').read().strip()}
@@ -213,16 +213,16 @@ CAPTCHA_SERVICE_API_KEY=
 PROXY_SERVICE_API_KEY=
 NOTIFICATION_SERVICE_API_KEY=
 """
-    
+
     # 保存到项目根目录
     with open(env_path, 'w', encoding='utf-8') as f:
         f.write(env_content)
-    
+
     # 保存到Docker目录
     docker_env_path.parent.mkdir(parents=True, exist_ok=True)
     with open(docker_env_path, 'w', encoding='utf-8') as f:
         f.write(env_content)
-    
+
     return {
         'postgres_password': postgres_password,
         'mongodb_password': mongodb_password,
@@ -240,15 +240,15 @@ def main():
     print("🚀 快速配置开发环境")
     print("=" * 50)
     print("正在生成安全的环境配置...")
-    
+
     try:
         result = create_env_file()
-        
+
         print("✅ 配置文件已生成:")
         print(f"   - {result['env_path']}")
         print(f"   - {result['docker_env_path']}")
         print()
-        
+
         print("🔐 生成的密码 (请妥善保管):")
         print("-" * 30)
         print(f"PostgreSQL密码: {result['postgres_password']}")
@@ -258,7 +258,7 @@ def main():
         print(f"pgAdmin密码: {result['pgadmin_password']}")
         print(f"MinIO密码: {result['minio_password']}")
         print()
-        
+
         print("🚀 下一步:")
         print("-" * 30)
         print("1. 启动存储服务:")
@@ -276,15 +276,15 @@ def main():
         print("   - Redis: http://localhost:8081")
         print("   - MinIO: http://localhost:9001")
         print()
-        
+
         print("💡 提示:")
         print("   如需自定义配置，请运行: python setup_config.py")
         print()
-        
+
     except Exception as e:
         print(f"❌ 配置失败: {e}")
         return 1
-    
+
     return 0
 
 

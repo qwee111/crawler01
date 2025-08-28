@@ -71,20 +71,26 @@ def _get_ext_from_url(url: str, default_ext: str = "") -> str:
 class _ArticleMediaMixin:
     media_type: str = "media"
 
-    def _build_base_parts(self, item, request: Request) -> Tuple[str, str, str, str, str]:
+    def _build_base_parts(
+        self, item, request: Request
+    ) -> Tuple[str, str, str, str, str]:
         """
         返回 (site, date_str, slug, url, idx_str)
         """
         ad = ItemAdapter(item)
         site = ad.get("site_name") or ad.get("site") or "unknown"
         date_str = _safe_date(ad.get("publish_date") or ad.get("crawl_timestamp"))
-        slug = ad.get("title_slug") or _safe_slug(ad.get("title") or ad.get("article_id") or site)
+        slug = ad.get("title_slug") or _safe_slug(
+            ad.get("title") or ad.get("article_id") or site
+        )
         url = request.url
         idx = request.meta.get("media_index")
         idx_str = f"{int(idx):02d}" if isinstance(idx, int) else "00"
         return site, date_str, slug, url, idx_str
 
-    def _enrich_results(self, results: List[Tuple[bool, dict]], item, store_field: str, urls_field: str) -> List[dict]:
+    def _enrich_results(
+        self, results: List[Tuple[bool, dict]], item, store_field: str, urls_field: str
+    ) -> List[dict]:
         """将 Scrapy 的 results 转为带更多元数据的列表。"""
         ad = ItemAdapter(item)
         urls: List[str] = list(ad.get(urls_field) or [])
@@ -92,7 +98,12 @@ class _ArticleMediaMixin:
         now_iso = datetime.now().isoformat()
         for i, (ok, info) in enumerate(results):
             if not ok or not info:
-                enriched.append({"status": "failed", "original_url": urls[i] if i < len(urls) else None})
+                enriched.append(
+                    {
+                        "status": "failed",
+                        "original_url": urls[i] if i < len(urls) else None,
+                    }
+                )
                 continue
             enriched.append(
                 {
@@ -132,12 +143,18 @@ class ArticleFilesPipeline(_ArticleMediaMixin, FilesPipeline):
         short = _short_hash(url)
         # 目录：<site>/<date>/files/<ext_without_dot>/
         # 文件：<slug>-<hash10><ext>
-        type_dir = (ext[1:].lower() if ext and ext.startswith(".") else (ext or "bin")).strip() or "bin"
+        type_dir = (
+            ext[1:].lower() if ext and ext.startswith(".") else (ext or "bin")
+        ).strip() or "bin"
         filename = f"{slug}-{short}{ext}"
-        return os.path.join(site, date_str, self.media_type, type_dir, filename).replace("\\", "/")
+        return os.path.join(
+            site, date_str, self.media_type, type_dir, filename
+        ).replace("\\", "/")
 
     def item_completed(self, results, item, info):
-        enriched = self._enrich_results(results, item, store_field="files", urls_field="file_urls")
+        enriched = self._enrich_results(
+            results, item, store_field="files", urls_field="file_urls"
+        )
         ItemAdapter(item)["files"] = enriched
         return item
 
@@ -165,10 +182,13 @@ class ArticleImagesPipeline(_ArticleMediaMixin, ImagesPipeline):
         # 目录：<site>/<date>/images/
         # 文件：<slug>-<index>-<hash10><ext>
         filename = f"{slug}-{idx_str}-{short}{ext}"
-        return os.path.join(site, date_str, self.media_type, filename).replace("\\", "/")
+        return os.path.join(site, date_str, self.media_type, filename).replace(
+            "\\", "/"
+        )
 
     def item_completed(self, results, item, info):
-        enriched = self._enrich_results(results, item, store_field="images", urls_field="image_urls")
+        enriched = self._enrich_results(
+            results, item, store_field="images", urls_field="image_urls"
+        )
         ItemAdapter(item)["images"] = enriched
         return item
-

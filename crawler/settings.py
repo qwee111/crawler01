@@ -15,7 +15,7 @@ from pathlib import Path
 
 
 # 加载.env文件中的环境变量
-def load_env_file():
+def load_env_file() -> None:
     """加载.env文件中的环境变量"""
     # 获取项目根目录（settings.py的上两级目录）
     project_root = Path(__file__).parent.parent
@@ -135,12 +135,48 @@ IMAGES_STORE = "storage/images"
 # IMAGES_MIN_HEIGHT = 100
 # IMAGES_MIN_WIDTH = 100
 
+# MinIO / S3 媒体存储配置（示例，可通过环境变量启用）
+# 说明：当 MINIO_ENABLED=True 且配置了访问凭证时，
+#       将把 FILES_STORE/IMAGES_STORE 切换为 s3://<bucket>/<prefix>
+#       Scrapy 会通过 AWS_* 配置使用 boto3 与 S3 兼容端点（MinIO）交互。
+MINIO_ENABLED = os.getenv("MINIO_ENABLED", "False").lower() == "true"
+MINIO_ENDPOINT = os.getenv(
+    "MINIO_ENDPOINT", "http://localhost:9000"
+)  # MinIO服务地址（含协议与端口）
+MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "")
+MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "")
+MINIO_REGION = os.getenv("MINIO_REGION", "us-east-1")
+MINIO_BUCKET = os.getenv("MINIO_BUCKET", "crawler-media")
+MINIO_FILES_PREFIX = os.getenv("MINIO_FILES_PREFIX", "files")
+MINIO_IMAGES_PREFIX = os.getenv("MINIO_IMAGES_PREFIX", "images")
+# 可选：地址风格与 SSL
+S3_ADDRESSING_STYLE = os.getenv(
+    "S3_ADDRESSING_STYLE", "path"
+)  # path|virtual（MinIO 推荐 path）
+S3_USE_SSL = os.getenv("S3_USE_SSL", "False").lower() == "true"
+
+if MINIO_ENABLED and MINIO_BUCKET and MINIO_ACCESS_KEY and MINIO_SECRET_KEY:
+    # Scrapy 的 S3 客户端配置（boto3）
+    AWS_ACCESS_KEY_ID = MINIO_ACCESS_KEY
+    AWS_SECRET_ACCESS_KEY = MINIO_SECRET_KEY
+    AWS_ENDPOINT_URL = MINIO_ENDPOINT  # S3 兼容端点（Scrapy ≥2.8 支持）
+    AWS_REGION_NAME = MINIO_REGION
+    # 注意：addressing_style/ssl 等高级项依赖 boto3 的 client config，
+    # 以下两项作为文档性设置保留
+    AWS_S3_ADDRESSING_STYLE = S3_ADDRESSING_STYLE
+    AWS_USE_SSL = S3_USE_SSL
+
+    # 切换媒体存储到 MinIO（S3）
+    FILES_STORE = f"s3://{MINIO_BUCKET}/{MINIO_FILES_PREFIX}"
+    IMAGES_STORE = f"s3://{MINIO_BUCKET}/{MINIO_IMAGES_PREFIX}"
+
+
 # Enable autothrottling
-AUTOTHROTTLE_ENABLED = True
-AUTOTHROTTLE_START_DELAY = 1
-AUTOTHROTTLE_MAX_DELAY = 60
-AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
-AUTOTHROTTLE_DEBUG = False
+AUTOTHROTTLE_ENABLED = True  # 自动限速
+AUTOTHROTTLE_START_DELAY = 1  # 初始下载延迟
+AUTOTHROTTLE_MAX_DELAY = 60  # 最大延迟
+AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0  # 目标并发数
+AUTOTHROTTLE_DEBUG = False  # 调试模式
 
 # Enable and configure HTTP caching
 HTTPCACHE_ENABLED = True

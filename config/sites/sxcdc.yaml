@@ -94,7 +94,7 @@ extraction:
           attr: text
     api:
       url: "/api-gateway/jpaas-publish-server/front/page/build/unit"
-      params: { 
+      params: {
         webId: 5ae89be1f4fd429d9b4163d644654038,
         pageId: 6b955cc3705645578c383716b73a2b4e,
         parseType: bulidstatic,

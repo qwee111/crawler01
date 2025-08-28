@@ -33,7 +33,7 @@ postgresql:
   max_overflow: 30
   pool_timeout: 30
   pool_recycle: 3600
-  
+
   # 表配置
   tables:
     epidemic_data: "epidemic_data"
@@ -46,12 +46,12 @@ connection_pools:
   redis:
     max_connections: 100
     retry_on_timeout: true
-  
+
   mongodb:
     max_pool_size: 100
     min_pool_size: 10
     max_idle_time_ms: 30000
-  
+
   postgresql:
     pool_size: 20
     max_overflow: 30

@@ -126,15 +126,16 @@ class AdaptiveSpiderV2(RedisSpider):
         """
         try:
             url = (response.url or "").lower()
-            ctype_bytes = (response.headers.get(b"Content-Type") or b"")
+            ctype_bytes = response.headers.get(b"Content-Type") or b""
             ctype = ctype_bytes.decode("utf-8", errors="ignore").lower()
         except Exception:
             url, ctype = response.url.lower(), ""
 
         # 1) 基于URL扩展名
         try:
-            from urllib.parse import urlparse
             import os as _os
+            from urllib.parse import urlparse
+
             path = urlparse(url).path
             _, ext = _os.path.splitext(path)
             ext = (ext or "").lower().lstrip(".")
@@ -142,8 +143,22 @@ class AdaptiveSpiderV2(RedisSpider):
             ext = ""
 
         known_exts = {
-            "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
-            "csv", "txt", "zip", "rar", "7z", "gz", "tar", "xml", "json"
+            "pdf",
+            "doc",
+            "docx",
+            "xls",
+            "xlsx",
+            "ppt",
+            "pptx",
+            "csv",
+            "txt",
+            "zip",
+            "rar",
+            "7z",
+            "gz",
+            "tar",
+            "xml",
+            "json",
         }
         if ext in known_exts:
             return ext
@@ -331,12 +346,13 @@ class AdaptiveSpiderV2(RedisSpider):
                 response, site_name, page_analysis
             )
 
-
             # 若为直链可下载文件（不限于PDF），直接产出并返回
             try:
                 direct_ext = self._detect_direct_file(response)
                 if direct_ext:
-                    title = response.meta.get("list_title") or response.url.split("/")[-1]
+                    title = (
+                        response.meta.get("list_title") or response.url.split("/")[-1]
+                    )
                     publish_date = response.meta.get("list_date")
                     yield {
                         "url": response.url,
@@ -370,6 +386,7 @@ class AdaptiveSpiderV2(RedisSpider):
                 if api_cfg:
                     try:
                         from urllib.parse import urlencode, urljoin
+
                         base_url = api_cfg.get("url") or ""
                         api_url = urljoin(response.url, base_url)
                         params = api_cfg.get("params") or {}
@@ -397,12 +414,13 @@ class AdaptiveSpiderV2(RedisSpider):
                 yield from self._handle_list_incremental(response, site_name, items)
                 return
 
-
             # 详情页：优先检测直链可下载文件（命中则直接产出）
             try:
                 direct_ext = self._detect_direct_file(response)
                 if direct_ext:
-                    title = response.meta.get("list_title") or response.url.split("/")[-1]
+                    title = (
+                        response.meta.get("list_title") or response.url.split("/")[-1]
+                    )
                     publish_date = response.meta.get("list_date")
                     yield {
                         "url": response.url,
@@ -431,7 +449,10 @@ class AdaptiveSpiderV2(RedisSpider):
 
                 # 若详情页未提到标题或标题异常，优先回退列表标题
                 try:
-                    if not extracted.get("title") or str(extracted.get("title")).strip() == "":
+                    if (
+                        not extracted.get("title")
+                        or str(extracted.get("title")).strip() == ""
+                    ):
                         lt = response.meta.get("list_title")
                         if lt:
                             extracted["title"] = lt
@@ -558,11 +579,13 @@ class AdaptiveSpiderV2(RedisSpider):
             if not url:
                 continue
             absolute_url = urljoin(response.url, url)
-            to_follow.append({
-                "url": absolute_url,
-                "list_title": it.get("title"),
-                "list_date": it.get("date") or it.get("publish_date"),
-            })
+            to_follow.append(
+                {
+                    "url": absolute_url,
+                    "list_title": it.get("title"),
+                    "list_date": it.get("date") or it.get("publish_date"),
+                }
+            )
 
         if not to_follow:
             return
@@ -607,7 +630,6 @@ class AdaptiveSpiderV2(RedisSpider):
 
         return self.site_detector.detect_site(response.url)
 
-
     def parse_list_api(self, response):
         """解析列表API的响应，将其转换成 items 结构。
         支持三种形式：
@@ -616,6 +638,7 @@ class AdaptiveSpiderV2(RedisSpider):
         3) 纯 HTML 片段（html_item_selector 提取 li）
         """
         import json
+
         from parsel import Selector
 
         site_name = response.meta.get("site_name")
@@ -627,15 +650,21 @@ class AdaptiveSpiderV2(RedisSpider):
         def parse_li_elements(elements):
             out = []
             for i, el in enumerate(elements):
-                title = el.css("a::attr(title)").get() or (el.css("a::text").get() or "").strip()
+                title = (
+                    el.css("a::attr(title)").get()
+                    or (el.css("a::text").get() or "").strip()
+                )
                 url = el.css("a::attr(href)").get()
-                li_text = " ".join([t.strip() for t in el.css("::text").getall() if t and t.strip()])
+                li_text = " ".join(
+                    [t.strip() for t in el.css("::text").getall() if t and t.strip()]
+                )
                 import re
+
                 m = re.search(r"\d{4}-\d{2}-\d{2}", li_text)
                 date = m.group(0) if m else None
                 if not url:
                     continue
-                out.append({"title": title, "url": url, "date": date, "index": i+1})
+                out.append({"title": title, "url": url, "date": date, "index": i + 1})
             return out
 
         try:
@@ -646,7 +675,7 @@ class AdaptiveSpiderV2(RedisSpider):
                 path = (api_cfg.get("json_path") or "").strip()
                 node = data
                 if path:
-                    for part in path.split('.'):
+                    for part in path.split("."):
                         if not part:
                             continue
                         if isinstance(node, dict):
@@ -667,23 +696,29 @@ class AdaptiveSpiderV2(RedisSpider):
                             # 处理URL模板
                             if url_template and url:
                                 temp = url
-                                url = url_template.format(
-                                    url=temp
-                                )
+                                url = url_template.format(url=temp)
 
-                            self.logger.info(f"json title: {title}, url: {url}, date: {date}")
-
+                            self.logger.info(
+                                f"json title: {title}, url: {url}, date: {date}"
+                            )
 
                             if not url:
                                 continue
-                            items.append({"title": title, "url": url, "date": date, "index": i+1})
+                            items.append(
+                                {
+                                    "title": title,
+                                    "url": url,
+                                    "date": date,
+                                    "index": i + 1,
+                                }
+                            )
                         except Exception:
                             continue
                 else:
                     html_field = (api_cfg.get("json_html_field") or "").strip()
                     if html_field:
                         node = data
-                        for part in html_field.split('.'):
+                        for part in html_field.split("."):
                             if not part:
                                 continue
                             if isinstance(node, dict):
@@ -694,12 +729,17 @@ class AdaptiveSpiderV2(RedisSpider):
                                 break
                         if isinstance(node, str) and node.strip():
                             sel = Selector(text=node)
-                            li_sel = (api_cfg.get("html_item_selector") or "div.page-content ul li").strip()
+                            li_sel = (
+                                api_cfg.get("html_item_selector")
+                                or "div.page-content ul li"
+                            ).strip()
                             elements = sel.css(li_sel)
                             items = parse_li_elements(elements)
             else:
                 sel = Selector(text=response.text)
-                li_sel = (api_cfg.get("html_item_selector") or "div.page-content ul li").strip()
+                li_sel = (
+                    api_cfg.get("html_item_selector") or "div.page-content ul li"
+                ).strip()
                 elements = sel.css(li_sel)
                 items = parse_li_elements(elements)
         except Exception as e:

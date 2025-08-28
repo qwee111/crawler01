@@ -173,7 +173,7 @@ db.monitoring_metrics.createIndex({ "timestamp": 1 }, { expireAfterSeconds: 7776
 db.error_records.createIndex({ "timestamp": 1 }, { expireAfterSeconds: 5184000 });
 
 // 已完成的任务保留7天
-db.crawler_tasks.createIndex({ "completed_at": 1 }, { 
+db.crawler_tasks.createIndex({ "completed_at": 1 }, {
   expireAfterSeconds: 604800,
   partialFilterExpression: { "status": "completed" }
 });

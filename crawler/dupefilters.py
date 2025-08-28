@@ -15,8 +15,8 @@ import logging
 from typing import Optional
 
 from scrapy.settings import Settings
-from scrapy_redis.dupefilter import RFPDupeFilter
 from scrapy_redis import connection
+from scrapy_redis.dupefilter import RFPDupeFilter
 
 logger = logging.getLogger(__name__)
 
@@ -53,4 +53,3 @@ class SiteAwareRFPDupeFilter(RFPDupeFilter):
             key = f"dupefilter:{spider_name}"
         debug = settings.getbool("DUPEFILTER_DEBUG")
         return cls(server=server, key=key, debug=debug)
-
