@@ -1,0 +1,12 @@
+route:
+  receiver: default
+
+templates:
+  - '/etc/alertmanager/*.tmpl'
+
+receivers:
+  - name: default
+    webhook_configs:
+      - url: 'http://alerter:8080/webhook'
+        send_resolved: true
+

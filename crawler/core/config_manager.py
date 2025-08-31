@@ -4,7 +4,6 @@
 统一管理所有网站配置，提供配置加载、验证、缓存等功能
 """
 
-import json
 import logging
 from pathlib import Path
 from typing import Dict, List, Optional

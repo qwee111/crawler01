@@ -542,27 +542,27 @@ def main():
     config_manager.register_config_callback("test_config", config_callback)
 
     # 获取配置
-    print(f"\n📖 获取配置:")
+    print("\n📖 获取配置:")
     config = config_manager.get_config("test_config")
     if config:
         print(f"   下载延迟: {config['spider_settings']['download_delay']}")
         print(f"   并发请求: {config['spider_settings']['concurrent_requests']}")
 
     # 获取配置版本信息
-    print(f"\n📋 配置版本信息:")
+    print("\n📋 配置版本信息:")
     versions = config_manager.get_config_versions()
     for name, info in versions.items():
         print(f"   {name}: v{info['version']} (校验和: {info['checksum'][:8]}...)")
 
     # 启动文件监控
     if WATCHDOG_AVAILABLE:
-        print(f"\n👁️ 启动文件监控...")
+        print("\n👁️ 启动文件监控...")
         monitor_success = config_manager.start_file_monitoring()
         print(f"   文件监控: {'✅' if monitor_success else '❌'}")
 
         if monitor_success:
             print(f"   提示: 修改 {config_file} 文件来测试热更新")
-            print(f"   等待5秒...")
+            print("   等待5秒...")
             time.sleep(5)
 
     # 清理测试文件
@@ -575,7 +575,7 @@ def main():
     # 停止配置管理器
     config_manager.stop()
 
-    print(f"\n✅ 配置管理器测试完成")
+    print("\n✅ 配置管理器测试完成")
     return True
 
 

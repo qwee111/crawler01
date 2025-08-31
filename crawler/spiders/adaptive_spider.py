@@ -5,10 +5,8 @@
 基于配置规则的通用爬虫，可以适应不同网站结构
 """
 
-from urllib.parse import urljoin, urlparse
-
 import scrapy
-from scrapy.http import Request, Response
+from scrapy.http import Request
 
 from ..rule_engine import RuleEngine
 
@@ -182,7 +180,7 @@ class AdaptiveSpider(scrapy.Spider):
 
         # 根据配置文件的字段规则进行数据提取
         try:
-            self.logger.info(f"🔧 开始根据配置文件提取数据...")
+            self.logger.info("🔧 开始根据配置文件提取数据...")
 
             # 使用配置文件中的fields规则进行提取
             data = self._extract_data_by_config(response, page_type)
@@ -193,21 +191,21 @@ class AdaptiveSpider(scrapy.Spider):
             data["page_type"] = page_type
             data["content_type"] = content_type
 
-            self.logger.info(f"📄 提取数据字段: {list(data.keys())}")
+            self.logger.info("📄 提取数据字段: %s", list(data.keys()))
 
             # 调试：显示提取的关键数据
             if data.get("title"):
                 self.logger.info(f"📝 提取到标题: {data['title']}")
             else:
-                self.logger.warning(f"⚠️ 未提取到标题")
+                self.logger.warning("⚠️ 未提取到标题")
 
             if data.get("content"):
                 content_length = len(str(data["content"]))
-                self.logger.info(f"📝 提取到内容: {content_length} 字符")
+                self.logger.info("📝 提取到内容: %s 字符", content_length)
             else:
-                self.logger.warning(f"⚠️ 未提取到内容")
+                self.logger.warning("⚠️ 未提取到内容")
 
-            self.logger.info(f"📤 准备yield数据项")
+            self.logger.info("📤 准备yield数据项")
             yield data
 
         except Exception as e:
@@ -283,7 +281,7 @@ class AdaptiveSpider(scrapy.Spider):
                 sample = response.body[:100].decode("utf-8", errors="ignore")
                 # 检查是否包含HTML标签
                 return "<" in sample and ">" in sample
-            except:
+            except Exception:
                 return False
 
         return False
@@ -292,7 +290,6 @@ class AdaptiveSpider(scrapy.Spider):
         """智能检测页面类型"""
         try:
             # 获取页面文本内容
-            text_content = response.text.lower()
             url = response.url.lower()
 
             # 1. 根据URL路径判断
@@ -778,7 +775,7 @@ class AdaptiveSpider(scrapy.Spider):
 
     def closed(self, reason):
         """爬虫关闭时的处理"""
-        self.logger.info(f"🏁 自适应爬虫完成")
+        self.logger.info("🏁 自适应爬虫完成")
         self.logger.info(f"📊 关闭原因: {reason}")
         self.logger.info(f"🎯 目标网站: {self.target_site}")
 

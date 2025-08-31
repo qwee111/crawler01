@@ -85,11 +85,11 @@ class AdaptiveSpiderV2(RedisSpider):
             self.start_urls = [
                 item["url"] for item in start_urls_config if "url" in item
             ]
-            logger.info(f"📋 加载起始URL: {len(self.start_urls)} 个")
+            logger.info("📋 加载起始URL: %s 个", len(self.start_urls))
             for i, url in enumerate(self.start_urls, 1):
                 logger.info(f"   {i}. {url}")
         else:
-            logger.warning(f"⚠️ 配置文件中没有start_urls部分")
+            logger.warning("⚠️ 配置文件中没有start_urls部分")
             self.start_urls = []
 
         # 设置请求配置
@@ -669,7 +669,7 @@ class AdaptiveSpiderV2(RedisSpider):
 
         try:
             if resp_type == "json":
-                self.logger.info(f"json")
+                self.logger.info("json")
 
                 data = json.loads(response.text)
                 path = (api_cfg.get("json_path") or "").strip()
@@ -794,7 +794,7 @@ class AdaptiveSpiderV2(RedisSpider):
 
     def closed(self, reason):
         """爬虫关闭时的清理工作"""
-        logger.info(f"🏁 自适应爬虫V2关闭")
+        logger.info("🏁 自适应爬虫V2关闭")
         logger.info(f"📊 关闭原因: {reason}")
 
         # 输出统计信息
@@ -802,4 +802,4 @@ class AdaptiveSpiderV2(RedisSpider):
         logger.info("📈 爬虫统计信息:")
         for key, value in stats.items():
             if "count" in key.lower():
-                logger.info(f"    {key}: {value}")
+                logger.info("    %s: %s", key, value)

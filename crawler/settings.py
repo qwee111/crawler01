@@ -106,10 +106,10 @@ DOWNLOADER_MIDDLEWARES = {
 }
 
 # Enable or disable extensions
-# EXTENSIONS = {
-#     'scrapy.extensions.telnet.TelnetConsole': None,
-#     'crawler.extensions.PrometheusExtension': 500,
-# }
+EXTENSIONS = {
+    'scrapy.extensions.telnet.TelnetConsole': None,
+    'crawler.monitoring.scrapy_ext.MetricsExtension': 500,
+}
 
 # Configure item pipelines - 数据处理管道
 ITEM_PIPELINES = {
@@ -251,7 +251,7 @@ PROXY_POOL_SIZE = int(os.getenv("PROXY_POOL_SIZE", 100))
 PROXY_VALIDATION_TIMEOUT = int(os.getenv("PROXY_VALIDATION_TIMEOUT", 10))
 
 # Monitoring settings
-PROMETHEUS_PORT = int(os.getenv("PROMETHEUS_PORT", 8000))
+PROMETHEUS_PORT = int(os.getenv("PROMETHEUS_PORT", 9108))
 METRICS_ENABLED = os.getenv("METRICS_ENABLED", "True").lower() == "true"
 
 # Logging

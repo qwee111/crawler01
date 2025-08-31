@@ -7,7 +7,7 @@ Selenium中间件
 
 import logging
 import time
-from typing import Any, Dict, Optional
+from typing import Tuple
 from urllib.parse import urlparse
 
 from scrapy import signals
@@ -16,7 +16,7 @@ from scrapy.http import HtmlResponse
 
 try:
     from selenium import webdriver
-    from selenium.common.exceptions import TimeoutException, WebDriverException
+    from selenium.common.exceptions import TimeoutException
     from selenium.webdriver.chrome.options import Options as ChromeOptions
     from selenium.webdriver.common.by import By
     from selenium.webdriver.firefox.options import Options as FirefoxOptions
@@ -39,7 +39,7 @@ class SeleniumMiddleware:
         browser: str = "chrome",
         implicit_wait: int = 10,
         page_load_timeout: int = 30,
-        window_size: tuple = (1920, 1080),
+        window_size: Tuple[int, int] = (1920, 1080),
     ):
         if not SELENIUM_AVAILABLE:
             raise NotConfigured("Selenium not available")

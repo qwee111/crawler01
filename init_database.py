@@ -161,7 +161,7 @@ def init_database():
         )
 
         tables = cursor.fetchall()
-        print(f"\n📊 数据库中的表:")
+        print("\n📊 数据库中的表:")
         for table in tables:
             print(f"  - {table[0]}")
 

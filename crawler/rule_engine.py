@@ -160,8 +160,9 @@ class RuleEngine:
                             sample = sample.decode("utf-8", errors="ignore")
                         # 检查是否包含HTML标签
                         return "<" in sample and ">" in sample
-                    except:
-                        pass
+                    except Exception:
+                        # 二进制/编码解码错误等：视为非文本，交由后续判断
+                        return False
 
             # 如果Content-Type不明确，假设为文本
             if not content_type or content_type == "unknown":

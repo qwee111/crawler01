@@ -12,7 +12,6 @@
 import hashlib
 import json
 import logging
-import re
 
 from itemadapter import ItemAdapter
 from scrapy.exceptions import DropItem
@@ -250,6 +249,12 @@ class MongoPipeline:
             self.client = pymongo.MongoClient(self.mongo_uri)
             self.db = self.client[self.mongo_db]
             logger.info("MongoDB连接成功")
+            try:
+                from crawler.monitoring.db_instrumentation import instrument_mongo_client
+
+                instrument_mongo_client(self.client, db="mongodb")
+            except Exception:
+                pass
         except ImportError:
             logger.error("pymongo未安装，无法使用MongoDB管道")
         except Exception as e:
@@ -267,7 +272,7 @@ class MongoPipeline:
             logger.warning("❌ MongoDB数据库连接为空")
             return item
 
-        logger.info(f"💾 MongoPipeline 处理数据项")
+        logger.info("💾 MongoPipeline 处理数据项")
 
         try:
             adapter = ItemAdapter(item)
@@ -276,23 +281,29 @@ class MongoPipeline:
             # collection_name = f"{spider.name}_data"
             collection = self.db[collection_name]
 
-            logger.info(f"📊 准备存储到集合: {collection_name}")
-            logger.info(f"📄 数据项字段数: {len(adapter.asdict())}")
+            logger.info("📊 准备存储到集合: %s", collection_name)
+            logger.info("📄 数据项字段数: %s", len(adapter.asdict()))
 
             # 存前校验
             title = str(adapter.get("title", ""))[:30]
             clen = len(adapter.get("content", "") or "")
-            logger.info(f"🧾 存前校验: title='{title}' content_len={clen}")
+            logger.info("🧾 存前校验: title='%s' content_len=%s", title, clen)
 
             # 插入数据
             result = collection.insert_one(adapter.asdict())
-            logger.info(f"✅ 数据已存储到MongoDB: {result.inserted_id}")
+            logger.info("✅ 数据已存储到MongoDB: %s", result.inserted_id)
+            try:
+                from crawler.monitoring.metrics import ITEM_STORED, labels_site
+
+                ITEM_STORED.labels(**labels_site(spider.name, site)).inc()
+            except Exception:
+                pass
 
         except Exception as e:
-            logger.error(f"❌ MongoDB存储失败: {e}")
+            logger.error("❌ MongoDB存储失败: %s", e)
             import traceback
 
-            logger.error(f"❌ 错误详情: {traceback.format_exc()}")
+            logger.error("❌ 错误详情: %s", traceback.format_exc())
             raise DropItem(f"MongoDB存储失败: {e}")
 
         return item
@@ -382,7 +393,7 @@ class PostgresPipeline:
             # 测试连接
             self.cursor.execute("SELECT version();")
             version = self.cursor.fetchone()
-            logger.info(f"✅ PostgreSQL连接成功!")
+            logger.info("✅ PostgreSQL连接成功!")
             logger.info(f"📋 版本信息: {version[0]}")
 
             # 测试编码
@@ -468,9 +479,15 @@ class PostgresPipeline:
             sql = f"INSERT INTO {table_name} ({fields_str}) VALUES ({placeholders})"
 
             # 执行插入
-            logger.debug(f"执行SQL: {sql}")
+            logger.debug("执行SQL: %s", sql)
             self.cursor.execute(sql, values)
             self.connection.commit()
+            try:
+                from crawler.monitoring.metrics import ITEM_STORED, labels_site
+
+                ITEM_STORED.labels(**labels_site(spider.name, item.get("site"))).inc()
+            except Exception:
+                pass
 
             logger.info(
                 f"✅ 数据已保存到PostgreSQL表 {table_name}: {adapter.get('title', 'No Title')[:50]}..."
@@ -497,8 +514,7 @@ class PostgresPipeline:
         import datetime
         import json
 
-        # 获取所有数据
-        data = adapter.asdict()
+        # 如需调试所有数据内容，可使用: logger.debug(f"全部数据: {adapter.asdict()}")
 
         processed_data = {}
 

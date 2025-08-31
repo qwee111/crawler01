@@ -6,7 +6,7 @@
 
 import logging
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -36,12 +36,12 @@ class ExtractionEngine:
                 return self._extract_by_config(response, type_config, page_analysis)
             elif "fields" in extraction_config:
                 # 使用通用字段配置
-                logger.info(f"🔧 使用通用字段配置提取数据")
+                logger.info("🔧 使用通用字段配置提取数据")
                 return self._extract_by_fields(
                     response, extraction_config["fields"], page_analysis
                 )
             else:
-                logger.error(f"❌ 未找到适用的提取配置")
+                logger.error("❌ 未找到适用的提取配置")
                 return {"url": response.url, "error": "No applicable extraction config"}
 
         except Exception as e:

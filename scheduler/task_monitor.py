@@ -596,7 +596,7 @@ def main():
         print(f"   {task['task_id']}: {'✅' if success else '❌'}")
 
     # 模拟任务执行和指标更新
-    print(f"\n📈 更新任务指标...")
+    print("\n📈 更新任务指标...")
     for i, task in enumerate(test_tasks):
         metrics_update = {
             "items_scraped": 10 + i * 5,
@@ -608,7 +608,7 @@ def main():
         print(f"   {task['task_id']}: {'✅' if success else '❌'}")
 
     # 模拟任务完成
-    print(f"\n✅ 完成任务监控...")
+    print("\n✅ 完成任务监控...")
     for i, task in enumerate(test_tasks):
         if i < 2:  # 前两个任务成功
             final_metrics = {"items_scraped": 15 + i * 5}
@@ -620,7 +620,7 @@ def main():
         print(f"   {task['task_id']}: {'✅' if success else '❌'}")
 
     # 获取性能统计
-    print(f"\n📊 性能统计:")
+    print("\n📊 性能统计:")
     stats = monitor.get_performance_stats()
     for key, value in stats.items():
         if isinstance(value, float):
@@ -629,7 +629,7 @@ def main():
             print(f"   {key}: {value}")
 
     # 获取告警信息
-    print(f"\n🚨 最近告警:")
+    print("\n🚨 最近告警:")
     alerts = monitor.get_recent_alerts(hours=1)
     if alerts:
         for alert in alerts[:3]:  # 显示前3个
@@ -638,7 +638,7 @@ def main():
         print("   无告警")
 
     # 获取工作节点性能
-    print(f"\n👥 工作节点性能:")
+    print("\n👥 工作节点性能:")
     worker_perf = monitor.get_worker_performance()
     for worker_id, perf in worker_perf.items():
         print(f"   {worker_id}:")
@@ -646,7 +646,7 @@ def main():
         print(f"      成功率: {perf['success_rate']:.2%}")
         print(f"      平均耗时: {perf['avg_duration']:.2f}秒")
 
-    print(f"\n✅ 任务监控器测试完成")
+    print("\n✅ 任务监控器测试完成")
     return True
 
 

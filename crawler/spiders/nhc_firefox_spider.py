@@ -16,9 +16,10 @@ import scrapy
 import yaml
 from scrapy import Request
 from selenium import webdriver
-from selenium.common.exceptions import TimeoutException, WebDriverException
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
+
+# from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -375,7 +376,7 @@ class NHCFirefoxSpider(scrapy.Spider):
                         "-" in date_text or "20" in date_text
                     ):  # 简单的日期格式验证
                         return date_text
-            except:
+            except Exception:
                 continue
 
         return None
@@ -411,7 +412,7 @@ class NHCFirefoxSpider(scrapy.Spider):
 
                     if title_text and link_url:
                         return (link_url, title_text)
-            except:
+            except Exception:
                 continue
 
         return None
@@ -519,7 +520,7 @@ class NHCFirefoxSpider(scrapy.Spider):
                 title_content = title_element.text.strip()
                 self.logger.warning(f"所有内容选择器失败，使用页面标题: {title_content}")
                 return f"标题: {title_content}"
-        except:
+        except Exception:
             pass
 
         self.logger.error("❌ 所有内容选择器都失败了")
@@ -710,7 +711,7 @@ class NHCFirefoxSpider(scrapy.Spider):
                         next_url = next_link.get_attribute("href")
                         self.logger.info(f"找到下一页链接: {next_url}")
                         return next_url
-                except:
+                except Exception:
                     continue
         except Exception as e:
             self.logger.error(f"返回列表页查找下一页链接失败: {e}")

@@ -523,14 +523,14 @@ def main():
         print(f"   {worker['worker_id']}: {'✅' if success else '❌'}")
 
     # 模拟心跳更新
-    print(f"\n💓 更新工作节点心跳...")
+    print("\n💓 更新工作节点心跳...")
     for worker in test_workers:
         stats = {"cpu_usage": 45.0, "memory_usage": 60.0, "active_tasks": 2}
         success = balancer.update_worker_heartbeat(worker["worker_id"], stats)
         print(f"   {worker['worker_id']}: {'✅' if success else '❌'}")
 
     # 测试工作节点选择
-    print(f"\n🎯 测试工作节点选择...")
+    print("\n🎯 测试工作节点选择...")
     test_sites = ["bjcdc", "general", "unknown"]
 
     for site in test_sites:
@@ -538,13 +538,13 @@ def main():
         print(f"   站点 {site}: {best_worker if best_worker else '无可用节点'}")
 
     # 获取统计信息
-    print(f"\n📊 负载均衡统计:")
+    print("\n📊 负载均衡统计:")
     stats = balancer.get_load_balance_stats()
     for key, value in stats.items():
         print(f"   {key}: {value}")
 
     # 获取工作节点详细信息
-    print(f"\n👥 工作节点详细信息:")
+    print("\n👥 工作节点详细信息:")
     worker_stats = balancer.get_worker_stats()
     for worker_id, info in worker_stats.items():
         print(f"   {worker_id}:")
@@ -553,7 +553,7 @@ def main():
         print(f"      CPU使用率: {info.get('cpu_usage', 0):.1f}%")
         print(f"      内存使用率: {info.get('memory_usage', 0):.1f}%")
 
-    print(f"\n✅ 负载均衡器测试完成")
+    print("\n✅ 负载均衡器测试完成")
     return True
 
 

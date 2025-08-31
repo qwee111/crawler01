@@ -28,6 +28,7 @@ try:
         TaskPriority,
     )
     from scheduler.worker_node import DistributedWorkerNode, WorkerConfig
+    from crawler.monitoring import MonitoringExporter
 
     SCHEDULER_AVAILABLE = True
 except ImportError:
@@ -322,7 +323,7 @@ class SchedulerSystemManager:
 
         # 调度器状态
         scheduler_stats = status.get("scheduler", {})
-        print(f"🚀 任务调度器:")
+        print("🚀 任务调度器:")
         print(f"   提交任务数: {scheduler_stats.get('tasks_submitted', 0)}")
         print(f"   处理中任务: {scheduler_stats.get('processing_count', 0)}")
         print(f"   完成任务数: {scheduler_stats.get('tasks_completed', 0)}")
@@ -331,7 +332,7 @@ class SchedulerSystemManager:
 
         # 负载均衡器状态
         lb_stats = status.get("load_balancer", {})
-        print(f"\n⚖️ 负载均衡器:")
+        print("\n⚖️ 负载均衡器:")
         print(f"   总工作节点: {lb_stats.get('total_workers', 0)}")
         print(f"   活跃节点: {lb_stats.get('active_workers', 0)}")
         print(f"   繁忙节点: {lb_stats.get('busy_workers', 0)}")
@@ -342,7 +343,7 @@ class SchedulerSystemManager:
         # 任务监控器状态
         monitor_stats = status.get("task_monitor", {})
         perf_stats = monitor_stats.get("performance_stats", {})
-        print(f"\n📊 任务监控器:")
+        print("\n📊 任务监控器:")
         print(f"   总任务数: {perf_stats.get('total_tasks', 0)}")
         print(f"   成功率: {perf_stats.get('success_rate', 0):.1%}")
         print(f"   平均耗时: {perf_stats.get('avg_duration', 0):.2f}秒")
@@ -352,7 +353,7 @@ class SchedulerSystemManager:
         # 配置管理器状态
         config_stats = status.get("config_manager", {})
         config_versions = config_stats.get("config_versions", {})
-        print(f"\n⚙️ 配置管理器:")
+        print("\n⚙️ 配置管理器:")
         print(f"   配置文件数: {len(config_versions)}")
         for name, info in list(config_versions.items())[:3]:  # 显示前3个
             print(f"   {name}: v{info.get('version', 'unknown')}")
@@ -477,6 +478,11 @@ def main():
         worker_id = args.worker_id or f"worker_{int(time.time())}"
         print(f"🤖 启动工作节点: {worker_id}")
 
+        # 启动监控 Exporter
+        print("📊 启动监控 Exporter...")
+        MonitoringExporter(port=9108).start()
+        print("✅ Exporter 已在端口 9108 启动")
+
         capabilities = {
             "supported_sites": ["bjcdc", "general"],
             "features": ["basic_crawling", "javascript"],
@@ -487,13 +493,13 @@ def main():
 
         try:
             worker.start()
-            print(f"✅ 工作节点启动成功")
+            print("✅ 工作节点启动成功")
 
             while worker.running:
                 time.sleep(1)
 
         except KeyboardInterrupt:
-            print(f"\n🛑 停止工作节点...")
+            print("\n🛑 停止工作节点...")
         finally:
             worker.stop()
 

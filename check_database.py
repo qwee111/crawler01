@@ -38,7 +38,7 @@ def check_mongodb():
         # 检查数据库
         db = client["crawler_db"]
         collections = db.list_collection_names()
-        print(f"   数据库: crawler_db")
+        print("   数据库: crawler_db")
         print(f"   集合数量: {len(collections)}")
         if collections:
             print(f"   集合: {collections}")
@@ -78,7 +78,7 @@ def check_postgresql():
 
         cursor.execute("SELECT version();")
         version = cursor.fetchone()
-        print(f"✅ PostgreSQL连接成功")
+        print("✅ PostgreSQL连接成功")
         print(f"   版本: {version[0]}")
 
         # 检查表

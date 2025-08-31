@@ -12,7 +12,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from scrapy.settings import Settings
 from scrapy_redis import connection

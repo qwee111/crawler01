@@ -11,13 +11,12 @@ Scrapy中间件模块
 import logging
 import random
 
-from itemadapter import ItemAdapter, is_item
+# from itemadapter import ItemAdapter, is_item
 from scrapy import signals
 from scrapy.downloadermiddlewares.retry import RetryMiddleware as BaseRetryMiddleware
 from scrapy.downloadermiddlewares.useragent import (
     UserAgentMiddleware as BaseUserAgentMiddleware,
 )
-from scrapy.exceptions import NotConfigured
 
 # 导入Twisted异常类型
 from twisted.internet import defer

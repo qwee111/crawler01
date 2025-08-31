@@ -534,24 +534,24 @@ def main():
         worker.start()
 
         print(f"✅ 工作节点启动成功: {config.worker_id}")
-        print(f"📊 状态信息:")
+        print("📊 状态信息:")
         status = worker.get_status()
         for key, value in status.items():
             if key != "system_stats":
                 print(f"   {key}: {value}")
 
-        print(f"\n💡 工作节点正在运行...")
-        print(f"   按 Ctrl+C 停止")
+        print("\n💡 工作节点正在运行...")
+        print("   按 Ctrl+C 停止")
 
         # 保持运行
         while worker.running:
             time.sleep(1)
 
     except KeyboardInterrupt:
-        print(f"\n🛑 收到停止信号")
+        print("\n🛑 收到停止信号")
     finally:
         worker.stop()
-        print(f"👋 工作节点已停止")
+        print("👋 工作节点已停止")
 
     return True
 

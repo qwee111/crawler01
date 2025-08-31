@@ -462,9 +462,9 @@ def main():
         print(f"❌ 报告生成失败: {report_files['error']}")
         return False
 
-    print(f"\n✅ 报告生成完成！")
+    print("\n✅ 报告生成完成！")
     print(f"📁 输出目录: {generator.output_dir}")
-    print(f"\n📄 生成的文件:")
+    print("\n📄 生成的文件:")
 
     for report_type, file_path in report_files.items():
         if report_type == "charts":
@@ -474,11 +474,11 @@ def main():
         else:
             print(f"   📋 {report_type.upper()}: {os.path.basename(file_path)}")
 
-    print(f"\n💡 建议:")
-    print(f"   1. 查看HTML报告获得最佳阅读体验")
-    print(f"   2. 使用JSON数据进行进一步分析")
-    print(f"   3. 分享文本摘要给相关人员")
-    print(f"   4. 定期生成报告跟踪趋势变化")
+    print("\n💡 建议:")
+    print("   1. 查看HTML报告获得最佳阅读体验")
+    print("   2. 使用JSON数据进行进一步分析")
+    print("   3. 分享文本摘要给相关人员")
+    print("   4. 定期生成报告跟踪趋势变化")
 
     return True
 

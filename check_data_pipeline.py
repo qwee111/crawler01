@@ -42,7 +42,7 @@ def check_data_pipeline():
         if "adaptive_data" in collections:
             adaptive_collection = db["adaptive_data"]
             count = adaptive_collection.count_documents({})
-            print(f"🎯 adaptive_data集合详细信息:")
+            print("🎯 adaptive_data集合详细信息:")
             print(f"   📊 总记录数: {count:,}")
 
             # 检查最新记录
@@ -63,7 +63,7 @@ def check_data_pipeline():
                 if missing_fields:
                     print(f"   ⚠️ 缺失字段: {missing_fields}")
                 else:
-                    print(f"   ✅ 必需字段完整")
+                    print("   ✅ 必需字段完整")
 
                 # 显示所有字段
                 print(f"   📋 字段列表: {list(latest_doc.keys())}")

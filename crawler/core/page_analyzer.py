@@ -6,7 +6,7 @@
 
 import logging
 import re
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -65,14 +65,14 @@ class PageAnalyzer:
             content_features = rules.get("content_features", {})
             if content_features:
                 if self._match_content_features(response, content_features):
-                    logger.debug(f"✅ 内容特征匹配")
+                    logger.debug("✅ 内容特征匹配")
                     return True
 
             # 结构特征匹配
             structure_features = rules.get("structure_features", {})
             if structure_features:
                 if self._match_structure_features(response, structure_features):
-                    logger.debug(f"✅ 结构特征匹配")
+                    logger.debug("✅ 结构特征匹配")
                     return True
 
             return False

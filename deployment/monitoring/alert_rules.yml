@@ -1,0 +1,80 @@
+groups:
+  - name: crawler-alerts
+    rules:
+      # Redis
+      - alert: RedisDown
+        expr: crawler_redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis 不可用"
+          description: "Redis ping 失败"
+
+      - alert: RedisHighMemory
+        expr: crawler_redis_used_memory_bytes / (1024*1024*1024) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis 内存高"
+          description: "Redis 内存使用超过80%"
+
+      # 队列
+      - alert: QueueBacklogHigh
+        expr: crawler_queue_length > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "队列长度过高"
+          description: "队列长度持续超过 1000"
+
+      # 爬取成功率
+      - alert: CrawlerLowSuccessRate
+        expr: sum by (spider, site) (crawler_request_total{status="success"}) / (sum by (spider, site) (crawler_request_total{status=~"success|fail"}) + 1e-6) < 0.85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "成功率低"
+          description: "爬取成功率低于 85%"
+
+      # 错误率
+      - alert: CrawlerHighErrorRate
+        expr: sum by (spider, site) (crawler_request_total{status="fail"}) / (sum by (spider, site) (crawler_request_total{status=~"success|fail"}) + 1e-6) > 0.15
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "错误率高"
+          description: "错误率超过 15%"
+
+      # 系统资源
+      - alert: HighCPUUsage
+        expr: crawler_cpu_usage_percent > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU 使用率高"
+          description: "CPU 使用率超过 85%"
+
+      - alert: HighMemUsage
+        expr: crawler_mem_usage_percent > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "内存使用率高"
+          description: "内存使用率超过 90%"
+
+      - alert: HighDiskUsage
+        expr: crawler_disk_usage_percent > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "磁盘使用率高"
+          description: "某挂载点磁盘使用率超过 80%"
+

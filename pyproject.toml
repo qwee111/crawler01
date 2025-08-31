@@ -43,6 +43,8 @@ dependencies = [
     "selenium>=4.34.2",
     "watchdog>=6.0.0",
     "webdriver-manager>=4.0.2",
+    "sqlalchemy>=2.0.43",
+    "prometheus-client>=0.22.1",
 ]
 
 # 包发现配置

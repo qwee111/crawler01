@@ -441,13 +441,13 @@ def main():
         print(f"   任务 {task.task_id[:8]}... : {'✅' if success else '❌'}")
 
     # 获取统计信息
-    print(f"\n📊 调度器统计:")
+    print("\n📊 调度器统计:")
     stats = scheduler.get_stats()
     for key, value in stats.items():
         print(f"   {key}: {value}")
 
     # 模拟工作节点获取任务
-    print(f"\n🔄 模拟工作节点获取任务...")
+    print("\n🔄 模拟工作节点获取任务...")
     worker_id = "test_worker_001"
 
     for i in range(3):
@@ -460,16 +460,16 @@ def main():
             scheduler.complete_task(task.task_id, result)
             print(f"   完成任务: {task.task_id[:8]}...")
         else:
-            print(f"   没有更多任务")
+            print("   没有更多任务")
             break
 
     # 最终统计
-    print(f"\n📈 最终统计:")
+    print("\n📈 最终统计:")
     final_stats = scheduler.get_stats()
     for key, value in final_stats.items():
         print(f"   {key}: {value}")
 
-    print(f"\n✅ 调度器测试完成")
+    print("\n✅ 调度器测试完成")
     return True
 
 

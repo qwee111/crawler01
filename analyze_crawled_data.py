@@ -136,7 +136,7 @@ def analyze_data_content(data_analysis):
                 sources[f"site:{item['site']}"] += 1
 
     if sources:
-        print(f"\n🌐 数据来源统计:")
+        print("\n🌐 数据来源统计:")
         for source, count in sources.most_common():
             print(f"   {source:<30} {count:>6} 条")
 
@@ -154,13 +154,13 @@ def analyze_data_content(data_analysis):
                 data_types["有图片"] += 1
 
     if data_types:
-        print(f"\n📝 数据类型统计:")
+        print("\n📝 数据类型统计:")
         for data_type, count in data_types.most_common():
             percentage = (count / len(all_data)) * 100
             print(f"   {data_type:<15} {count:>6} 条 ({percentage:>5.1f}%)")
 
     # 显示数据样例
-    print(f"\n📄 数据样例:")
+    print("\n📄 数据样例:")
     for i, item in enumerate(all_data[:3]):
         print(f"\n   样例 {i+1}:")
         if isinstance(item, dict):
@@ -284,12 +284,12 @@ def analyze_crawl_logs():
                     continue
 
         if status_codes:
-            print(f"\n📊 HTTP状态码统计:")
+            print("\n📊 HTTP状态码统计:")
             for code, count in status_codes.most_common():
                 print(f"   {code}: {count} 次")
 
         # 显示最近的日志
-        print(f"\n📝 最近的日志 (最后10行):")
+        print("\n📝 最近的日志 (最后10行):")
         for line in lines[-10:]:
             if line.strip():
                 print(f"   {line}")
@@ -356,13 +356,13 @@ def main():
     print(f"💾 数据总大小: {summary['total_size']:,} 字节")
 
     if summary["total_items"] > 0:
-        print(f"\n✅ 爬虫系统已成功爬取数据！")
-        print(f"📍 数据保存位置: data/ 目录")
-        print(f"📄 数据格式: JSON")
-        print(f"🔍 详细报告: data_analysis_report.json")
+        print("\n✅ 爬虫系统已成功爬取数据！")
+        print("📍 数据保存位置: data/ 目录")
+        print("📄 数据格式: JSON")
+        print("🔍 详细报告: data_analysis_report.json")
     else:
-        print(f"\n⚠️ 暂无爬取数据")
-        print(f"💡 建议运行爬虫: uv run scrapy crawl adaptive -a site=test_site")
+        print("\n⚠️ 暂无爬取数据")
+        print("💡 建议运行爬虫: uv run scrapy crawl adaptive -a site=test_site")
 
     print("\n🎊 数据分析完成！")
 

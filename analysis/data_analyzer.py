@@ -476,15 +476,15 @@ def main():
         print(f"🏥 主要疾病类别: {insights.get('top_disease_category', 'N/A')}")
         print(f"🏙️ 最活跃地区: {insights.get('most_active_district', 'N/A')}")
 
-        print(f"\n💡 关键发现:")
+        print("\n💡 关键发现:")
         for finding in summary.get("key_findings", []):
             print(f"   • {finding}")
 
-        print(f"\n🎯 建议:")
+        print("\n🎯 建议:")
         for rec in summary.get("recommendations", []):
             print(f"   • {rec}")
 
-        print(f"\n✅ 分析完成！详细报告已保存")
+        print("\n✅ 分析完成！详细报告已保存")
         return True
     else:
         print("❌ 分析失败")

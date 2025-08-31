@@ -62,7 +62,7 @@ def test_selenium_grid():
             data = response.json()
             if data.get("value", {}).get("ready"):
                 nodes = data.get("value", {}).get("nodes", [])
-                print(f"✅ Selenium Grid运行正常")
+                print("✅ Selenium Grid运行正常")
                 print(f"📊 节点数量: {len(nodes)}")
 
                 for i, node in enumerate(nodes):
@@ -241,7 +241,7 @@ def test_basic_crawling():
             print("✅ 基础爬虫测试成功")
             return True
         else:
-            print(f"❌ 基础爬虫测试失败")
+            print("❌ 基础爬虫测试失败")
             print(f"错误输出: {result.stderr[:200]}...")
             return False
 
@@ -275,7 +275,7 @@ def test_selenium_integration():
 
         driver.quit()
 
-        print(f"✅ Selenium集成测试成功")
+        print("✅ Selenium集成测试成功")
         print(f"📄 页面标题: {title}")
         print(f"📊 页面大小: {page_source_length} 字符")
 

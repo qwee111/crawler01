@@ -1,0 +1,45 @@
+{
+  "title": "Crawler Monitoring",
+  "timezone": "browser",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "CPU Usage",
+      "targets": [{ "expr": "crawler_cpu_usage_percent" }]
+    },
+    {
+      "type": "stat",
+      "title": "Mem Usage",
+      "targets": [{ "expr": "crawler_mem_usage_percent" }]
+    },
+    {
+      "type": "graph",
+      "title": "QPS by Site",
+      "targets": [
+        { "expr": "rate(crawler_request_total{status=\"success\"}[1m])", "legendFormat": "{{spider}}/{{site}}" }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Error Rate by Site",
+      "targets": [
+        { "expr": "rate(crawler_request_total{status=\"fail\"}[5m]) / (rate(crawler_request_total[5m]) + 1e-6)", "legendFormat": "{{spider}}/{{site}}" }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Latency P95",
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(crawler_request_latency_seconds_bucket[5m])) by (le, spider, site))", "legendFormat": "{{spider}}/{{site}}" }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Queue Length",
+      "targets": [
+        { "expr": "crawler_queue_length", "legendFormat": "{{spider}}/{{site}} {{queue}}" }
+      ]
+    }
+  ]
+}
+

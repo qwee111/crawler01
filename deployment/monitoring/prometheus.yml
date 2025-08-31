@@ -1,0 +1,28 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+# TSDB 持久化（示例：Prometheus 启动参数中使用）
+# prometheus \
+#   --config.file=deployment/monitoring/prometheus.yml \
+#   --storage.tsdb.path=/data/prom \
+#   --storage.tsdb.retention.time=30d \
+#   --storage.tsdb.retention.size=50GB \
+#   --web.enable-lifecycle
+
+
+scrape_configs:
+  - job_name: 'crawler_exporter'
+    static_configs:
+      # 如果 exporter 运行在宿主机，请使用 host.docker.internal
+      - targets: ['host.docker.internal:9108']
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
