@@ -22,7 +22,7 @@ def load_env_file() -> None:
     env_file = project_root / ".env"
 
     if env_file.exists():
-        print(f"📁 加载环境变量文件: {env_file}")
+        print(f"加载环境变量文件: {env_file}") # 移除emoji
         with open(env_file, "r", encoding="utf-8") as f:
             for line_num, line in enumerate(f, 1):
                 line = line.strip()
@@ -39,10 +39,10 @@ def load_env_file() -> None:
                         os.environ[key] = value
                         # print(f"  ✅ {key}={'*' * len(value) if 'PASSWORD' in key else value}")
                     except ValueError:
-                        print(f"  ⚠️  跳过无效行 {line_num}: {line}")
-        print("✅ 环境变量加载完成")
+                        print(f"  跳过无效行 {line_num}: {line}") # 移除emoji
+        print("环境变量加载完成") # 移除emoji
     else:
-        print(f"⚠️  环境变量文件不存在: {env_file}")
+        print(f"环境变量文件不存在: {env_file}") # 移除emoji
 
 
 # 在导入时立即加载环境变量
@@ -74,6 +74,9 @@ COOKIES_ENABLED = True
 
 # Disable Telnet Console (enabled by default)
 TELNETCONSOLE_ENABLED = False
+
+MYEXT_ENABLED=True      # 开启扩展
+IDLE_NUMBER=12           # 配置空闲持续时间单位为 12个 ，一个时间单位为5s
 
 # Override the default request headers:
 DEFAULT_REQUEST_HEADERS = {
@@ -109,6 +112,8 @@ DOWNLOADER_MIDDLEWARES = {
 EXTENSIONS = {
     'scrapy.extensions.telnet.TelnetConsole': None,
     'crawler.monitoring.scrapy_ext.MetricsExtension': 500,
+    # 'crawler.extensions.PrometheusExtension': 600,
+    'crawler.extensions.RedisSpiderSmartIdleClosedExensions': 700,
 }
 
 # Configure item pipelines - 数据处理管道
@@ -201,26 +206,27 @@ DUPEFILTER_CLASS = "crawler.dupefilters.SiteAwareRFPDupeFilter"
 # 键名格式，可按需覆盖（如按站点分组）
 SITE_AWARE_DUPEFILTER_KEY_FMT = "dupefilter:%(spider)s:%(site)s"
 
-# Default requests serializer is pickle, but it can be changed to any module
-# with loads and dumps functions. Note that pickle is not compatible between
-# python versions.
+
+# 默认的请求序列化器是 pickle，但可将其更改为任何包含 loads 和 dumps 函数的模块。
+# 请注意，pickle 在不同 Python 版本之间不兼容。
 SCHEDULER_SERIALIZER = "scrapy_redis.picklecompat"
 
-# Don't cleanup redis queues, allows to pause/resume crawls.
+# 确保在暂停后请求队列不会丢失
 SCHEDULER_PERSIST = True
 
-# Schedule requests using a priority queue. (default)
+# 使用优先级队列调度请求
 SCHEDULER_QUEUE_CLASS = "scrapy_redis.queue.PriorityQueue"
 
-# Alternatively, you can use the LIFO queue.
+# 此外，还可以使用后进先出（LIFO）队列。
 # SCHEDULER_QUEUE_CLASS = 'scrapy_redis.queue.LifoQueue'
-
-# Or the FIFO queue.
+# 或者先进先出（FIFO）队列。
 # SCHEDULER_QUEUE_CLASS = 'scrapy_redis.queue.FifoQueue'
 
 # 列表刷新与更新检测配置
-LIST_REFRESH_ENABLED = True
+LIST_REFRESH_ENABLED = False
+# 刷新间隔
 LIST_REFRESH_INTERVAL = int(os.getenv("LIST_REFRESH_INTERVAL", 900))  # 秒
+# 内容去重
 CONTENT_DEDUP_ENABLED = True
 
 # Database settings
@@ -268,6 +274,10 @@ DOWNLOAD_TIMEOUT = 180
 RETRY_TIMES = 3
 RETRY_HTTP_CODES = [500, 502, 503, 504, 408, 429]
 
+# 当调度器在指定时间内没有新的请求被接收时，自动关闭爬虫（单位：秒）
+# 这是 scrapy-redis 调度器使用的设置
+SCHEDULER_IDLE_BEFORE_CLOSE = 60
+
 # User-Agent settings
 USER_AGENT_LIST = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
@@ -297,7 +307,7 @@ REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
 # Selenium Grid配置
 SELENIUM_ENABLED = False  # 默认关闭，可通过命令行参数启用
 SELENIUM_GRID_URL = "http://localhost:4444"
-SELENIUM_BROWSER = "chrome"  # chrome 或 firefox
+SELENIUM_BROWSER = "firefox"  # chrome 或 firefox
 SELENIUM_IMPLICIT_WAIT = 10
 SELENIUM_PAGE_LOAD_TIMEOUT = 30
 SELENIUM_WINDOW_SIZE = (1920, 1080)

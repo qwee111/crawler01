@@ -240,41 +240,49 @@ class SchedulerSystemManager:
 
     def submit_site_tasks(self, site: str):
         """提交指定站点的所有任务"""
-        if not self.scheduler:
-            logger.error("调度器不可用")
+        if not self.scheduler or not self.config_manager:
+            logger.error("调度器或配置管理器不可用")
             return
 
-        # 预定义的站点任务
-        site_tasks = {
-            "bjcdc": [
-                "https://www.bjcdc.org/cdcmodule/jkdt/bsxw/index.shtml",  # 中心要闻
-                "https://www.bjcdc.org/cdcmodule/jkdt/jcdt/index.shtml",  # 基层动态
-                "https://www.bjcdc.org/cdcmodule/jkdt/yqbb/index.shtml",  # 疫情播报
-                "https://www.bjcdc.org/cdcmodule/jkdt/zytz/index.shtml",  # 重要通知
-            ],
-            "nhc": [
-                "http://www.nhc.gov.cn/xcs/yqtb/list_gzbd.shtml",  # 疫情通报
-                "http://www.nhc.gov.cn/xcs/yqfkdt/list_gzbd.shtml",  # 防控动态
-            ],
-        }
+        target_sites = []
+        if site == "all":
+            # 从 config_manager 获取所有站点名称
+            all_configs = self.config_manager.get_config_versions().keys()
+            target_sites = [name.replace("sites/", "") for name in all_configs if name.startswith("sites/")]
+            logger.info(f"提交所有站点任务: {target_sites}")
+        else:
+            target_sites.append(site)
 
-        if site not in site_tasks:
-            logger.error(f"不支持的站点: {site}")
-            logger.info(f"支持的站点: {list(site_tasks.keys())}")
-            return
+        total_submitted_count = 0
+        for current_site in target_sites:
+            # 使用正确的 config_name 格式调用 get_config
+            site_config = self.config_manager.get_config(f"sites/{current_site}")
+            if not site_config:
+                logger.error(f"❌ 未找到站点 '{current_site}' 的配置")
+                continue
 
-        urls = site_tasks[site]
-        logger.info(f"提交 {site} 站点的 {len(urls)} 个任务...")
+            start_urls_config = site_config.get("start_urls", [])
+            if not start_urls_config:
+                logger.warning(f"⚠️ 站点 '{current_site}' 没有配置 start_urls")
+                continue
 
-        submitted_count = 0
-        for url in urls:
-            success = self.submit_custom_task(
-                spider_name="adaptive", url=url, site=site, priority="NORMAL"
-            )
-            if success:
-                submitted_count += 1
+            urls = [item["url"] for item in start_urls_config if "url" in item]
+            logger.info(f"提交站点 '{current_site}' 的 {len(urls)} 个任务...")
 
-        logger.info(f"站点任务提交完成: {submitted_count}/{len(urls)} 个任务成功")
+            submitted_count = 0
+            for url in urls:
+                success = self.submit_custom_task(
+                    spider_name="adaptive_v2", # 使用 adaptive_v2 爬虫
+                    url=url,
+                    site=current_site,
+                    priority="NORMAL"
+                )
+                if success:
+                    submitted_count += 1
+            total_submitted_count += submitted_count
+            logger.info(f"站点 '{current_site}' 任务提交完成: {submitted_count}/{len(urls)} 个任务成功")
+
+        logger.info(f"所有站点任务提交完成: 共 {total_submitted_count} 个任务成功")
 
     def get_system_status(self) -> Dict:
         """获取系统状态"""
@@ -413,7 +421,7 @@ def main():
     )
 
     # 任务提交相关参数
-    parser.add_argument("--spider", default="adaptive", help="爬虫名称")
+    parser.add_argument("--spider", default="adaptive_v2", help="爬虫名称")
     parser.add_argument("--url", help="要爬取的URL")
     parser.add_argument("--site", help="站点名称")
     parser.add_argument(
@@ -484,7 +492,7 @@ def main():
         print("✅ Exporter 已在端口 9108 启动")
 
         capabilities = {
-            "supported_sites": ["bjcdc", "general"],
+            "supported_sites": ["general"],
             "features": ["basic_crawling", "javascript"],
             "max_concurrent_tasks": 3,
         }

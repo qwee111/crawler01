@@ -23,6 +23,9 @@ from .metrics import (
     DISK_USAGE,
     MEM_USAGE,
     NET_CONN,
+    PROC_COUNT,
+    THREAD_COUNT,
+    REDIS_USED_MEMORY_BYTES,
     QUEUE_BACKLOG_SECONDS,
     QUEUE_LENGTH,
     REDIS_CONNECTED_CLIENTS,
@@ -111,4 +114,3 @@ class MonitoringExporter:
                 time.sleep(5)
             except Exception:
                 time.sleep(5)
-

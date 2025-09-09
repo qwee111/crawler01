@@ -218,9 +218,28 @@ class SeleniumMiddleware:
             # 获取页面源码
             body = driver.page_source.encode("utf-8")
 
+            # 获取页面源码
+            body = driver.page_source.encode("utf-8")
+            current_url = driver.current_url
+
+            # 域名校验：确保当前URL的域名与原始请求的域名一致
+            original_domain = urlparse(request.url).netloc
+            current_domain = urlparse(current_url).netloc
+
+            if original_domain and current_domain and original_domain != current_domain:
+                logger.warning(f"⚠️ Selenium检测到跨域重定向。原始URL域名: {original_domain}, 当前URL域名: {current_domain}。丢弃响应。")
+                # 可以选择返回一个带有错误信息的响应，或者直接返回 None 丢弃
+                return HtmlResponse(
+                    url=current_url,
+                    status=999, # 自定义状态码表示被中间件丢弃
+                    body=b"",
+                    encoding="utf-8",
+                    request=request,
+                )
+
             # 创建响应
             response = HtmlResponse(
-                url=driver.current_url, body=body, encoding="utf-8", request=request
+                url=current_url, body=body, encoding="utf-8", request=request
             )
 
             logger.info(f"Selenium处理完成: {request.url} -> {len(body)} bytes")

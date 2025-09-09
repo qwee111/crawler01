@@ -518,7 +518,15 @@ class PostgresPipeline:
 
         processed_data = {}
 
+        # Add site_name to processed_data
+        site_name = adapter.get("site_name") or adapter.get("site")
+        if site_name:
+            processed_data["site_name"] = str(site_name)
+
         for key, value in adapter.items():
+            # Ensure site_name is not processed again if it's already added
+            if key == "site_name" or key == "site":
+                continue
             # 处理字典和列表类型 - 转换为JSON
             if isinstance(value, (dict, list)):
                 try:

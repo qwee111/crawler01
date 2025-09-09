@@ -41,11 +41,11 @@ class AdaptiveSpiderV2(RedisSpider):
     ):
         super().__init__(*args, **kwargs)
 
-        # Redis 队列键动态设置：优先使用传入的 redis_key；否则按站点分桶
-        if redis_key:
+        # Redis 队列键动态设置：优先按站点分桶；否则使用传入的 redis_key
+        if site or target_site:
+            self.redis_key = f"adaptive_v2:{site or target_site}:start_urls"
+        elif redis_key:
             self.redis_key = redis_key
-        elif site:
-            self.redis_key = f"adaptive_v2:{site}:start_urls"
 
         # 初始化核心组件
         self.config_manager = ConfigManager()
@@ -228,14 +228,15 @@ class AdaptiveSpiderV2(RedisSpider):
         2) 启动基于Redis的列表周期刷新（ZSET）
         3) 监听Redis队列消费动态种子（兼容RedisSpider）
         """
-        # 初始化Redis连接（用于刷新/增量识别）
+
+        # 1) 初始化Redis连接（用于刷新/增量识别）
         try:
             self.server = connection.get_redis_from_settings(self.crawler.settings)
         except Exception as e:
             self.server = None
             logger.warning(f"⚠️ 无法连接Redis，将以降级模式运行: {e}")
 
-        # 1) 先发本地配置的起始URL（作为列表页强制刷新请求）
+        # 获取初始URL列表
         start_urls = list(getattr(self, "start_urls", []) or [])
         if not start_urls and self.site_config and "start_urls" in self.site_config:
             start_urls = [
@@ -243,76 +244,23 @@ class AdaptiveSpiderV2(RedisSpider):
                 for u in self.site_config.get("start_urls", [])
                 if u.get("url")
             ]
-        for url in start_urls:
-            logger.info(f"📋 列表页初始刷新: {url}")
-            yield scrapy.Request(
-                url=url,
-                callback=self.parse,
-                dont_filter=True,
-                meta={"page_type": "list_page", "site_name": self.target_site},
-                errback=self.handle_error,
-            )
 
-        # 2) 列表页周期刷新 - 仅在可用时启用
-        if self.server and self.settings.getbool("LIST_REFRESH_ENABLED", True):
-            site = self.target_site or "default"
-            refresh_key = f"refresh_queue:{site}"
-            # 将起始URL登记进刷新队列（下次刷新时间 = 现在 + interval）
-            interval = int(self.settings.getint("LIST_REFRESH_INTERVAL", 900))
+        # 2) 将初始URL作为 Request 对象 yield 出去，让 Scrapy 调度器处理入队
+        if start_urls:
             for url in start_urls:
-                mid = hashlib.sha1(url.encode("utf-8")).hexdigest()
-                try:
-                    self.server.set(f"list_url:{mid}", url)
-                    self.server.zadd(refresh_key, {mid: time.time() + interval})
-                except Exception as e:
-                    logger.warning(f"⚠️ 列表刷新登记失败: {e}")
-
-            async def refresh_loop():
-                logger.info("🔁 启动列表页刷新协程")
-                while True:
-                    try:
-                        popped = self._pop_due_refresh(refresh_key)
-                        if not popped:
-                            await asyncio.sleep(5)
-                            continue
-                        member, _ = popped
-                        url = (
-                            self.server.get(f"list_url:{member}")
-                            if self.server
-                            else None
-                        )
-                        if url:
-                            if isinstance(url, bytes):
-                                url = url.decode("utf-8", errors="ignore")
-                            logger.info(f"⏰ 周期刷新列表: {url}")
-                            yield scrapy.Request(
-                                url=url,
-                                callback=self.parse,
-                                dont_filter=True,
-                                meta={
-                                    "page_type": "list_page",
-                                    "site_name": self.target_site,
-                                },
-                                errback=self.handle_error,
-                            )
-                            # 重新安排下一次刷新
-                            try:
-                                self.server.zadd(
-                                    refresh_key, {member: time.time() + interval}
-                                )
-                            except Exception as e:
-                                logger.warning(f"⚠️ 刷新队列重入失败: {e}")
-                        else:
-                            logger.debug(f"🔎 未找到列表URL映射: list_url:{member}")
-                    except Exception as e:
-                        logger.warning(f"⚠️ 列表刷新循环异常: {e}")
-                        await asyncio.sleep(5)
-
-            # 将刷新生成器并入 Scrapy 的异步 start 流
-            async for req in refresh_loop():
-                yield req
+                logger.info(f"📋 初始URL已作为请求 yield: {url}")
+                yield scrapy.Request(
+                    url=url,
+                    callback=self.parse,
+                    dont_filter=True, # 初始种子通常不应被去重器过滤
+                    meta={"page_type": "list_page", "site_name": self.target_site, "site": self.target_site}, # 添加 site 到 meta
+                    errback=self.handle_error,
+                )
+        else:
+            logger.info("📋 没有配置初始URL。")
 
         # 3) 监听 Redis 队列（继承自 RedisSpider / Spider 的 start 实现）
+        # RedisSpider 会从 self.redis_key 对应的队列中拉取请求
         try:
             async for req in super().start():
                 yield req
@@ -324,10 +272,15 @@ class AdaptiveSpiderV2(RedisSpider):
         try:
             logger.info(f"✅ 开始解析页面: {response.url}")
 
-            # 检测网站
-            site_name = self._detect_site(response)
+            # 确定网站名：优先使用meta中的site_name，其次是爬虫实例的target_site，最后才自动检测
+            site_name = response.meta.get("site_name")
             if not site_name:
-                logger.warning(f"⚠️ 无法识别网站: {response.url}")
+                site_name = self.target_site
+            if not site_name:
+                site_name = self._detect_site(response)
+
+            if not site_name:
+                logger.warning(f"⚠️ 无法确定网站名，跳过解析: {response.url}")
                 return
 
             # 页面类型：当禁用自动检测时，优先使用 meta 提供的 page_type
@@ -611,6 +564,7 @@ class AdaptiveSpiderV2(RedisSpider):
                 continue
             try:
                 uhash = hashlib.sha1(link.encode("utf-8")).hexdigest()
+                # 确保 seen_key 使用 site_name 进行隔离
                 if not self.server.sismember(seen_key, uhash):
                     self.server.sadd(seen_key, uhash)
                     yield scrapy.Request(

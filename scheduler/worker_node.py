@@ -325,9 +325,8 @@ class DistributedWorkerNode:
             "-a",
             f"site={task.site_config.get('site', 'default')}",
             "-s",
-            f"START_URLS={task.url}",
-            "-s",
             "LOG_LEVEL=INFO",
+            # START_URLS 不再通过命令行参数传递，由 AdaptiveSpiderV2 内部处理
         ]
 
         # 添加其他配置参数
@@ -349,11 +348,69 @@ class DistributedWorkerNode:
 
             # 执行命令 - 简化版本，不使用timeout
             process = subprocess.Popen(
+                # cmd, stdout=sys.stdout, stderr=sys.stderr, text=True, env=env
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env
+
             )
 
             # 等待进程完成
             stdout, stderr = process.communicate()
+
+            if process.returncode == 0:
+                # 解析输出获取统计信息
+                stats = self.parse_scrapy_output(stdout)
+                return {
+                    "success": True,
+                    "stats": stats,
+                    "stdout": stdout,
+                    "stderr": stderr,
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": f"Scrapy退出码: {process.returncode}",
+                    "stdout": stdout,
+                    "stderr": stderr,
+                }
+
+# # 获取任务超时时间，如果未配置则使用默认值
+#             timeout = self.config.task_timeout
+#             process.wait() 
+            
+#             try:
+#                 # 等待进程完成，设置超时
+#                 process.wait(timeout=timeout)
+#                 logger.info(f"Scrapy进程完成 (退出码: {process.returncode}, 任务ID: {task_id})")
+#                 if process.returncode == 0:
+#                     return {
+#                         "success": True,
+#                         "stats": {}, # 由于直接重定向输出，无法直接解析统计信息
+#                         "stdout": "日志已直接输出到终端",
+#                         "stderr": "日志已直接输出到终端",
+#                     }
+#                 else:
+#                     return {
+#                         "success": False,
+#                         "error": f"Scrapy退出码: {process.returncode}",
+#                         "stdout": "日志已直接输出到终端",
+#                         "stderr": "日志已直接输出到终端",
+#                     }
+#             except subprocess.TimeoutExpired:
+#                 logger.error(f"Scrapy进程超时，强制终止 (任务ID: {task_id})")
+#                 process.terminate() # 尝试优雅终止
+#                 process.wait(timeout=5) # 等待一段时间
+#                 if process.poll() is None:
+#                     process.kill() # 如果仍未终止，则强制杀死
+#                 return {
+#                     "success": False,
+#                     "error": f"Scrapy进程超时 ({timeout}秒)",
+#                     "stdout": "日志已直接输出到终端",
+#                     "stderr": "日志已直接输出到终端",
+#                 }
+
+        except Exception as e:
+            logger.error(f"运行Scrapy爬虫时发生异常: {e}")
+            return {"success": False, "error": str(e)}
 
             if process.returncode == 0:
                 # 解析输出获取统计信息
@@ -517,8 +574,8 @@ def main():
     config = WorkerConfig(
         worker_id="test_worker_001",
         capabilities={
-            "supported_sites": ["bjcdc", "general"],
-            "features": ["basic_crawling", "javascript"],
+            "supported_sites": ["general", "nhc"],
+            "features": ["basic_crawling", "javascript", "selenium", "firefox"],
             "max_concurrent_tasks": 3,
         },
         max_concurrent_tasks=3,

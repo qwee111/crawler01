@@ -71,7 +71,9 @@ class CrawlTask:
 
     def generate_task_id(self) -> str:
         """生成唯一任务ID"""
-        content = f"{self.spider_name}:{self.url}:{self.created_at}"
+        # 如果 url 为空，则使用 site_name 作为任务 ID 的一部分
+        identifier = self.url if self.url else self.site_config.get("site", "default")
+        content = f"{self.spider_name}:{identifier}:{self.created_at}"
         return hashlib.md5(content.encode()).hexdigest()
 
     def to_dict(self) -> Dict:
@@ -131,6 +133,11 @@ class DistributedTaskScheduler:
             return False
 
         try:
+            # 如果 url 为空，则使用 site_name 作为任务的标识
+            if not task.url:
+                task.url = task.site_config.get("site", "default")
+                task.task_id = task.generate_task_id() # 重新生成任务ID以反映新的url
+
             # 检查任务是否已存在
             if self.is_task_exists(task.task_id):
                 logger.warning(f"任务已存在: {task.task_id}")

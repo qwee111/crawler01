@@ -94,8 +94,10 @@ class ConfigManager:
     def _build_domain_mapping(self, site_name: str, config: Dict):
         """构建域名到配置的映射"""
         domains = config["site_info"].get("domains", [])
+        # 优先精确匹配，避免模糊匹配导致的问题
+        # 如果有重复域名，后加载的会覆盖先加载的，这需要用户在配置层面避免
         for domain in domains:
-            self.domain_mapping[domain] = site_name
+            self.domain_mapping[domain.lower()] = site_name
 
     def get_config_by_site(self, site_name: str) -> Optional[Dict]:
         """根据网站名获取配置"""
@@ -107,15 +109,21 @@ class ConfigManager:
             parsed = urlparse(url)
             domain = parsed.netloc.lower()
 
-            # 精确匹配
+            # 优先精确匹配
             if domain in self.domain_mapping:
-                site_name = self.domain_mapping[domain]
-                return self.configs.get(site_name)
+                return self.configs.get(self.domain_mapping[domain])
 
-            # 模糊匹配（子域名）
+            # 模糊匹配（子域名），确保不会覆盖精确匹配
+            # 遍历所有已配置的域名，找到最长的匹配项
+            best_match_site_name = None
+            longest_match_len = 0
             for config_domain, site_name in self.domain_mapping.items():
-                if domain.endswith(config_domain):
-                    return self.configs.get(site_name)
+                if domain.endswith(config_domain) and len(config_domain) > longest_match_len:
+                    best_match_site_name = site_name
+                    longest_match_len = len(config_domain)
+            
+            if best_match_site_name:
+                return self.configs.get(best_match_site_name)
 
             return None
 
@@ -129,16 +137,20 @@ class ConfigManager:
             parsed = urlparse(url)
             domain = parsed.netloc.lower()
 
-            # 精确匹配
+            # 优先精确匹配
             if domain in self.domain_mapping:
                 return self.domain_mapping[domain]
 
-            # 模糊匹配
+            # 模糊匹配（子域名），确保不会覆盖精确匹配
+            # 遍历所有已配置的域名，找到最长的匹配项
+            best_match_site_name = None
+            longest_match_len = 0
             for config_domain, site_name in self.domain_mapping.items():
-                if domain.endswith(config_domain):
-                    return site_name
-
-            return None
+                if domain.endswith(config_domain) and len(config_domain) > longest_match_len:
+                    best_match_site_name = site_name
+                    longest_match_len = len(config_domain)
+            
+            return best_match_site_name
 
         except Exception as e:
             logger.error(f"URL解析失败: {url}, 错误: {e}")
