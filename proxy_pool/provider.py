@@ -25,9 +25,11 @@ class ProxyProvider(ABC):
     def __init__(self, name: str):
         self.name = name
         self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        })
+        self.session.headers.update(
+            {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            }
+        )
 
     @abstractmethod
     def fetch_proxies(self) -> List[ProxyInfo]:
@@ -37,7 +39,7 @@ class ProxyProvider(ABC):
     def parse_proxy_line(self, line: str) -> ProxyInfo:
         """解析代理行"""
         # 匹配 IP:PORT 格式
-        match = re.match(r'(\d+\.\d+\.\d+\.\d+):(\d+)', line.strip())
+        match = re.match(r"(\d+\.\d+\.\d+\.\d+):(\d+)", line.strip())
         if match:
             ip, port = match.groups()
             return ProxyInfo(ip=ip, port=int(port))
@@ -51,15 +53,15 @@ class FreeProxyProvider(ProxyProvider):
         super().__init__("FreeProxy")
         self.sources = [
             {
-                'name': 'proxy-list',
-                'url': 'https://www.proxy-list.download/api/v1/get?type=http',
-                'format': 'text'
+                "name": "proxy-list",
+                "url": "https://www.proxy-list.download/api/v1/get?type=http",
+                "format": "text",
             },
             {
-                'name': 'proxyscrape',
-                'url': 'https://api.proxyscrape.com/v2/?request=get&protocol=http&timeout=10000&country=all',
-                'format': 'text'
-            }
+                "name": "proxyscrape",
+                "url": "https://api.proxyscrape.com/v2/?request=get&protocol=http&timeout=10000&country=all",
+                "format": "text",
+            },
         ]
 
     def fetch_proxies(self) -> List[ProxyInfo]:
@@ -84,12 +86,12 @@ class FreeProxyProvider(ProxyProvider):
     def _fetch_from_source(self, source: Dict[str, str]) -> List[ProxyInfo]:
         """从单个源获取代理"""
         try:
-            response = self.session.get(source['url'], timeout=30)
+            response = self.session.get(source["url"], timeout=30)
             response.raise_for_status()
 
-            if source['format'] == 'text':
+            if source["format"] == "text":
                 return self._parse_text_format(response.text)
-            elif source['format'] == 'json':
+            elif source["format"] == "json":
                 return self._parse_json_format(response.json())
             else:
                 logger.warning(f"不支持的格式: {source['format']}")
@@ -103,7 +105,7 @@ class FreeProxyProvider(ProxyProvider):
         """解析文本格式的代理列表"""
         proxies = []
 
-        for line in text.strip().split('\n'):
+        for line in text.strip().split("\n"):
             proxy_info = self.parse_proxy_line(line)
             if proxy_info:
                 proxies.append(proxy_info)
@@ -117,13 +119,13 @@ class FreeProxyProvider(ProxyProvider):
         # 根据不同API的响应格式进行解析
         if isinstance(data, list):
             for item in data:
-                if isinstance(item, dict) and 'ip' in item and 'port' in item:
+                if isinstance(item, dict) and "ip" in item and "port" in item:
                     proxy_info = ProxyInfo(
-                        ip=item['ip'],
-                        port=int(item['port']),
-                        protocol=item.get('protocol', 'http'),
-                        country=item.get('country', ''),
-                        anonymity=item.get('anonymity', '')
+                        ip=item["ip"],
+                        port=int(item["port"]),
+                        protocol=item.get("protocol", "http"),
+                        country=item.get("country", ""),
+                        anonymity=item.get("anonymity", ""),
                     )
                     proxies.append(proxy_info)
 
@@ -135,20 +137,16 @@ class PremiumProxyProvider(ProxyProvider):
 
     def __init__(self, api_config: Dict[str, str]):
         super().__init__("PremiumProxy")
-        self.api_url = api_config.get('api_url')
-        self.api_key = api_config.get('api_key')
-        self.username = api_config.get('username')
-        self.password = api_config.get('password')
+        self.api_url = api_config.get("api_url")
+        self.api_key = api_config.get("api_key")
+        self.username = api_config.get("username")
+        self.password = api_config.get("password")
 
     def fetch_proxies(self) -> List[ProxyInfo]:
         """获取付费代理"""
         try:
             # 构建请求参数
-            params = {
-                'api_key': self.api_key,
-                'format': 'json',
-                'limit': 100
-            }
+            params = {"api_key": self.api_key, "format": "json", "limit": 100}
 
             response = self.session.get(self.api_url, params=params, timeout=30)
             response.raise_for_status()
@@ -164,16 +162,16 @@ class PremiumProxyProvider(ProxyProvider):
         """解析付费代理响应"""
         proxies = []
 
-        proxy_list = data.get('proxies', [])
+        proxy_list = data.get("proxies", [])
         for proxy_data in proxy_list:
             proxy_info = ProxyInfo(
-                ip=proxy_data['ip'],
-                port=int(proxy_data['port']),
-                protocol=proxy_data.get('protocol', 'http'),
+                ip=proxy_data["ip"],
+                port=int(proxy_data["port"]),
+                protocol=proxy_data.get("protocol", "http"),
                 username=self.username,
                 password=self.password,
-                country=proxy_data.get('country', ''),
-                anonymity=proxy_data.get('anonymity', 'elite')
+                country=proxy_data.get("country", ""),
+                anonymity=proxy_data.get("anonymity", "elite"),
             )
             proxies.append(proxy_info)
 
@@ -192,14 +190,14 @@ class LocalProxyProvider(ProxyProvider):
         try:
             proxies = []
 
-            with open(self.proxy_file, 'r', encoding='utf-8') as f:
+            with open(self.proxy_file, "r", encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
-                    if not line or line.startswith('#'):
+                    if not line or line.startswith("#"):
                         continue
 
                     # 支持多种格式
-                    if ':' in line:
+                    if ":" in line:
                         proxy_info = self.parse_proxy_line(line)
                         if proxy_info:
                             proxies.append(proxy_info)
@@ -273,17 +271,17 @@ def create_proxy_collector(config: Dict[str, Any]) -> ProxyCollector:
     collector = ProxyCollector()
 
     # 添加免费代理提供商
-    if config.get('free_proxies', {}).get('enabled', True):
+    if config.get("free_proxies", {}).get("enabled", True):
         collector.add_provider(FreeProxyProvider())
 
     # 添加付费代理提供商
-    premium_config = config.get('premium_proxies', {})
-    if premium_config.get('enabled', False):
-        for provider_config in premium_config.get('providers', []):
+    premium_config = config.get("premium_proxies", {})
+    if premium_config.get("enabled", False):
+        for provider_config in premium_config.get("providers", []):
             collector.add_provider(PremiumProxyProvider(provider_config))
 
     # 添加本地代理提供商
-    local_file = config.get('local_proxy_file')
+    local_file = config.get("local_proxy_file")
     if local_file:
         collector.add_provider(LocalProxyProvider(local_file))
 

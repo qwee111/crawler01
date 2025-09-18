@@ -1,27 +1,17 @@
-# 天津市疾病预防控制中心网站配置
+# 重庆市疾病预防控制中心网站配置
 site_info:
-  name: "天津市疾病预防控制中心"
-  base_url: "http://www.cdctj.com.cn"
-  description: "天津市疾病预防控制中心数据爬取"
+  name: "重庆市疾病预防控制中心"
+  base_url: "https://www.cqcdc.org/"
+  description: "重庆市疾病预防控制中心数据爬取"
   domains:
-    - "cdctj.com.cn"
-    - "www.cdctj.com.cn"
+    - "www.cqcdc.cn"
   encoding: "utf-8"
   language: "zh-CN"
 
 # 目标页面配置
 start_urls:
-  - url: "https://www.cdctj.com.cn/xxpt/yqbg/"
-    name: "全国及天津市法定传染病疫情报告"
-    type: "list_page"
-  - url: "https://www.cdctj.com.cn/xxpt/yqdt/index.shtml"
-    name: "新型冠状病毒感染疫情动态"
-    type: "list_page"
-  - url: "https://www.cdctj.com.cn/gzdt/ggwsdt/"
-    name: "公共卫生动态"
-    type: "list_page"
-  - url: "https://www.cdctj.com.cn/gzdt/bsgzdt/"
-    name: "重点工作动态"
+  - url: "https://www.cqcdc.org/index.php?c=index&a=posid&sid=5"
+    name: "重庆市法定传染病疫情报告"
     type: "list_page"
 
 # 页面类型检测配置
@@ -81,17 +71,17 @@ extraction:
     fields:
       page_title:
         method: css
-        selector: ".d_over2"
+        selector: ".ny_dqlm h2"
         attr: text
         required: true
 
     list_items:
-      container: ".hanggao30.zi14 a"
+      container: ".list_new_a .clearfix li"
       max_items: 50
       fields:
         title:
           method: css
-          selector: "a"
+          selector: "a h3"
           attr: text
         url:
           method: css
@@ -99,7 +89,7 @@ extraction:
           attr: href
         date:
           method: css
-          selector: "span"
+          selector: ".time"
           attr: text
 
   # 详情页特定配置
@@ -107,28 +97,28 @@ extraction:
     fields:
       title:
         method: css
-        selector: ".jiacu"
+        selector: ".title h2"
         attr: text
         required: true
       content:
         method: css
-        selector: ".xiahua"
+        selector: ".content p"
         attr: text
         multiple: true
         required: true
       source:
         method: css
-        selector: ".zi12"
+        selector: ".title span"
         type: string
         required: false
       publish_date:
         method: css
-        selector: ".zi12"
+        selector: ".title span"
         type: date
         required: false
       image_urls:
         method: css
-        selector: ".xiahua img::attr(src)"
+        selector: ".content img::attr(src)"
         type: url
         multiple: true
       file_urls:
@@ -195,7 +185,7 @@ update_detection:
   list_refresh_interval: 900
 
 storage:
-  collection_name: "cdctj_data"
+  collection_name: "cqcdc_data"
   indexes:
     - field: "publish_date"
       order: -1

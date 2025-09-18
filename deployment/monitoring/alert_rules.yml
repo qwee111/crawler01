@@ -77,4 +77,3 @@ groups:
         annotations:
           summary: "磁盘使用率高"
           description: "某挂载点磁盘使用率超过 80%"
-

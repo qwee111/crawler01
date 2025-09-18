@@ -234,6 +234,42 @@ services:
       - selenium
       - tools
 
+  # 爬虫服务
+  crawler:
+    build:
+      context: ../.. # 构建上下文为项目根目录
+      dockerfile: ./deployment/docker/Dockerfile
+    container_name: crawler_app
+    volumes:
+      - ../..:/app # 将项目根目录挂载到容器的/app
+      - ./logs:/app/logs # 挂载日志目录
+    networks:
+      - crawler_network
+    depends_on:
+      - redis
+      - mongodb
+      - postgresql
+      - selenium-hub # 如果爬虫需要Selenium
+    environment:
+      # 传递环境变量，例如数据库连接信息
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MONGODB_HOST: mongodb
+      MONGODB_PORT: 27017
+      POSTGRES_HOST: postgresql
+      POSTGRES_PORT: 5432
+      SELENIUM_HUB_URL: http://selenium-hub:4444/wd/hub
+      # 从.env文件加载其他环境变量
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      MONGODB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME:-admin}
+      MONGODB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD:-password}
+      MONGODB_DATABASE: ${MONGODB_DATABASE:-crawler_db}
+      POSTGRES_DB: ${POSTGRES_DB:-crawler_db}
+      POSTGRES_USER: ${POSTGRES_USER:-crawler_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-crawler_pass}
+    command: python start_scheduler.py # 启动调度器
+    restart: unless-stopped
+
 # Nginx - 反向代理 (可选，主要用于生产环境)
 # nginx:
 #   image: nginx:alpine

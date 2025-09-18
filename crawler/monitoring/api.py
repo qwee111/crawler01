@@ -72,4 +72,3 @@ def _collect_samples(metric) -> Dict[str, Any]:
         }
     except Exception:
         return {}
-

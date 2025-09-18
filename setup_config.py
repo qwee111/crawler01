@@ -20,7 +20,9 @@ class ConfigWizard:
 
     def __init__(self):
         self.project_root = Path(__file__).parent
-        self.env_example_path = self.project_root / "deployment" / "docker" / ".env.example"
+        self.env_example_path = (
+            self.project_root / "deployment" / "docker" / ".env.example"
+        )
         self.env_path = self.project_root / ".env"
         self.docker_env_path = self.project_root / "deployment" / "docker" / ".env"
 
@@ -37,12 +39,12 @@ class ConfigWizard:
     def generate_secure_password(self, length: int = 16) -> str:
         """生成安全密码"""
         alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
-        return ''.join(secrets.choice(alphabet) for _ in range(length))
+        return "".join(secrets.choice(alphabet) for _ in range(length))
 
     def generate_secret_key(self, length: int = 50) -> str:
         """生成密钥"""
         alphabet = string.ascii_letters + string.digits + "!@#$%^&*()-_=+[]{}|;:,.<>?"
-        return ''.join(secrets.choice(alphabet) for _ in range(length))
+        return "".join(secrets.choice(alphabet) for _ in range(length))
 
     def ask_yes_no(self, question: str, default: bool = True) -> bool:
         """询问是否问题"""
@@ -51,14 +53,19 @@ class ConfigWizard:
             answer = input(f"{question} [{default_str}]: ").strip().lower()
             if not answer:
                 return default
-            if answer in ['y', 'yes', '是']:
+            if answer in ["y", "yes", "是"]:
                 return True
-            elif answer in ['n', 'no', '否']:
+            elif answer in ["n", "no", "否"]:
                 return False
             print("请输入 y/yes 或 n/no")
 
-    def ask_input(self, question: str, default: str = "", required: bool = False,
-                  password: bool = False) -> str:
+    def ask_input(
+        self,
+        question: str,
+        default: str = "",
+        required: bool = False,
+        password: bool = False,
+    ) -> str:
         """询问输入"""
         while True:
             if password:
@@ -83,25 +90,25 @@ class ConfigWizard:
         print("📋 1. 环境配置")
         print("-" * 30)
 
-        env_choices = {
-            '1': 'development',
-            '2': 'testing',
-            '3': 'production'
-        }
+        env_choices = {"1": "development", "2": "testing", "3": "production"}
 
         print("选择运行环境:")
         for key, value in env_choices.items():
             print(f"  {key}. {value}")
 
         while True:
-            choice = input("请选择 [1]: ").strip() or '1'
+            choice = input("请选择 [1]: ").strip() or "1"
             if choice in env_choices:
-                self.config['ENVIRONMENT'] = env_choices[choice]
+                self.config["ENVIRONMENT"] = env_choices[choice]
                 break
             print("无效选择，请重新输入")
 
-        self.config['DEBUG'] = 'true' if self.config['ENVIRONMENT'] == 'development' else 'false'
-        self.config['LOG_LEVEL'] = 'DEBUG' if self.config['ENVIRONMENT'] == 'development' else 'INFO'
+        self.config["DEBUG"] = (
+            "true" if self.config["ENVIRONMENT"] == "development" else "false"
+        )
+        self.config["LOG_LEVEL"] = (
+            "DEBUG" if self.config["ENVIRONMENT"] == "development" else "INFO"
+        )
 
         print(f"✅ 环境设置为: {self.config['ENVIRONMENT']}")
         print()
@@ -113,36 +120,40 @@ class ConfigWizard:
 
         # PostgreSQL配置
         print("PostgreSQL 配置:")
-        self.config['POSTGRES_DB'] = self.ask_input("数据库名", "crawler_db")
-        self.config['POSTGRES_USER'] = self.ask_input("用户名", "crawler_user")
+        self.config["POSTGRES_DB"] = self.ask_input("数据库名", "crawler_db")
+        self.config["POSTGRES_USER"] = self.ask_input("用户名", "crawler_user")
 
         if self.ask_yes_no("自动生成PostgreSQL密码?"):
-            self.config['POSTGRES_PASSWORD'] = self.generate_secure_password()
+            self.config["POSTGRES_PASSWORD"] = self.generate_secure_password()
             print(f"✅ 已生成密码: {self.config['POSTGRES_PASSWORD']}")
         else:
-            self.config['POSTGRES_PASSWORD'] = self.ask_input("PostgreSQL密码", required=True, password=True)
+            self.config["POSTGRES_PASSWORD"] = self.ask_input(
+                "PostgreSQL密码", required=True, password=True
+            )
 
         # MongoDB配置
         print("\nMongoDB 配置:")
-        self.config['MONGODB_DATABASE'] = self.ask_input("数据库名", "crawler_db")
-        self.config['MONGODB_ROOT_USERNAME'] = self.ask_input("管理员用户名", "admin")
+        self.config["MONGODB_DATABASE"] = self.ask_input("数据库名", "crawler_db")
+        self.config["MONGODB_ROOT_USERNAME"] = self.ask_input("管理员用户名", "admin")
 
         if self.ask_yes_no("自动生成MongoDB密码?"):
-            self.config['MONGODB_ROOT_PASSWORD'] = self.generate_secure_password()
+            self.config["MONGODB_ROOT_PASSWORD"] = self.generate_secure_password()
             print(f"✅ 已生成密码: {self.config['MONGODB_ROOT_PASSWORD']}")
         else:
-            self.config['MONGODB_ROOT_PASSWORD'] = self.ask_input("MongoDB密码", required=True, password=True)
+            self.config["MONGODB_ROOT_PASSWORD"] = self.ask_input(
+                "MongoDB密码", required=True, password=True
+            )
 
         # Redis配置
         print("\nRedis 配置:")
         if self.ask_yes_no("为Redis设置密码? (推荐)"):
             if self.ask_yes_no("自动生成Redis密码?"):
-                self.config['REDIS_PASSWORD'] = self.generate_secure_password()
+                self.config["REDIS_PASSWORD"] = self.generate_secure_password()
                 print(f"✅ 已生成密码: {self.config['REDIS_PASSWORD']}")
             else:
-                self.config['REDIS_PASSWORD'] = self.ask_input("Redis密码", password=True)
+                self.config["REDIS_PASSWORD"] = self.ask_input("Redis密码", password=True)
         else:
-            self.config['REDIS_PASSWORD'] = ""
+            self.config["REDIS_PASSWORD"] = ""
 
         print("✅ 数据库配置完成")
         print()
@@ -153,9 +164,9 @@ class ConfigWizard:
         print("-" * 30)
 
         print("生成安全密钥...")
-        self.config['SECRET_KEY'] = self.generate_secret_key(64)
-        self.config['API_TOKEN'] = self.generate_secret_key(32)
-        self.config['JWT_SECRET'] = self.generate_secret_key(64)
+        self.config["SECRET_KEY"] = self.generate_secret_key(64)
+        self.config["API_TOKEN"] = self.generate_secret_key(32)
+        self.config["JWT_SECRET"] = self.generate_secret_key(64)
 
         print("✅ 安全密钥已生成")
 
@@ -164,25 +175,29 @@ class ConfigWizard:
 
         # MongoDB Express
         if self.ask_yes_no("自动生成MongoDB管理界面密码?"):
-            self.config['MONGO_EXPRESS_PASSWORD'] = self.generate_secure_password()
+            self.config["MONGO_EXPRESS_PASSWORD"] = self.generate_secure_password()
             print(f"✅ MongoDB Express密码: {self.config['MONGO_EXPRESS_PASSWORD']}")
         else:
-            self.config['MONGO_EXPRESS_PASSWORD'] = self.ask_input("MongoDB Express密码", password=True)
+            self.config["MONGO_EXPRESS_PASSWORD"] = self.ask_input(
+                "MongoDB Express密码", password=True
+            )
 
         # pgAdmin
-        self.config['PGADMIN_EMAIL'] = self.ask_input("pgAdmin邮箱", "admin@crawler.com")
+        self.config["PGADMIN_EMAIL"] = self.ask_input("pgAdmin邮箱", "admin@crawler.com")
         if self.ask_yes_no("自动生成pgAdmin密码?"):
-            self.config['PGADMIN_PASSWORD'] = self.generate_secure_password()
+            self.config["PGADMIN_PASSWORD"] = self.generate_secure_password()
             print(f"✅ pgAdmin密码: {self.config['PGADMIN_PASSWORD']}")
         else:
-            self.config['PGADMIN_PASSWORD'] = self.ask_input("pgAdmin密码", password=True)
+            self.config["PGADMIN_PASSWORD"] = self.ask_input("pgAdmin密码", password=True)
 
         # MinIO
         if self.ask_yes_no("自动生成MinIO密码?"):
-            self.config['MINIO_ROOT_PASSWORD'] = self.generate_secure_password()
+            self.config["MINIO_ROOT_PASSWORD"] = self.generate_secure_password()
             print(f"✅ MinIO密码: {self.config['MINIO_ROOT_PASSWORD']}")
         else:
-            self.config['MINIO_ROOT_PASSWORD'] = self.ask_input("MinIO密码", password=True)
+            self.config["MINIO_ROOT_PASSWORD"] = self.ask_input(
+                "MinIO密码", password=True
+            )
 
         print("✅ 安全配置完成")
         print()
@@ -195,30 +210,37 @@ class ConfigWizard:
         # 邮件配置
         if self.ask_yes_no("配置邮件告警?", False):
             print("邮件配置:")
-            self.config['SMTP_HOST'] = self.ask_input("SMTP服务器", "smtp.gmail.com")
-            self.config['SMTP_PORT'] = self.ask_input("SMTP端口", "587")
-            self.config['SMTP_USERNAME'] = self.ask_input("邮箱用户名", required=True)
-            self.config['SMTP_PASSWORD'] = self.ask_input("邮箱密码/应用密码", required=True, password=True)
-            self.config['SMTP_FROM'] = self.ask_input("发件人邮箱", self.config['SMTP_USERNAME'])
+            self.config["SMTP_HOST"] = self.ask_input("SMTP服务器", "smtp.gmail.com")
+            self.config["SMTP_PORT"] = self.ask_input("SMTP端口", "587")
+            self.config["SMTP_USERNAME"] = self.ask_input("邮箱用户名", required=True)
+            self.config["SMTP_PASSWORD"] = self.ask_input(
+                "邮箱密码/应用密码", required=True, password=True
+            )
+            self.config["SMTP_FROM"] = self.ask_input(
+                "发件人邮箱", self.config["SMTP_USERNAME"]
+            )
         else:
-            self.config.update({
-                'SMTP_HOST': 'smtp.gmail.com',
-                'SMTP_PORT': '587',
-                'SMTP_USERNAME': '',
-                'SMTP_PASSWORD': '',
-                'SMTP_FROM': ''
-            })
+            self.config.update(
+                {
+                    "SMTP_HOST": "smtp.gmail.com",
+                    "SMTP_PORT": "587",
+                    "SMTP_USERNAME": "",
+                    "SMTP_PASSWORD": "",
+                    "SMTP_FROM": "",
+                }
+            )
 
         # Slack配置
         if self.ask_yes_no("配置Slack告警?", False):
             print("Slack配置:")
-            self.config['SLACK_WEBHOOK_URL'] = self.ask_input("Slack Webhook URL", required=True)
-            self.config['SLACK_CHANNEL'] = self.ask_input("Slack频道", "#crawler-alerts")
+            self.config["SLACK_WEBHOOK_URL"] = self.ask_input(
+                "Slack Webhook URL", required=True
+            )
+            self.config["SLACK_CHANNEL"] = self.ask_input("Slack频道", "#crawler-alerts")
         else:
-            self.config.update({
-                'SLACK_WEBHOOK_URL': '',
-                'SLACK_CHANNEL': '#crawler-alerts'
-            })
+            self.config.update(
+                {"SLACK_WEBHOOK_URL": "", "SLACK_CHANNEL": "#crawler-alerts"}
+            )
 
         print("✅ 通知配置完成")
         print()
@@ -228,20 +250,20 @@ class ConfigWizard:
         print("🕷️ 5. 爬虫配置")
         print("-" * 30)
 
-        self.config['CONCURRENT_REQUESTS'] = self.ask_input("并发请求数", "16")
-        self.config['DOWNLOAD_DELAY'] = self.ask_input("下载延迟(秒)", "1")
-        self.config['PROXY_POOL_SIZE'] = self.ask_input("代理池大小", "100")
+        self.config["CONCURRENT_REQUESTS"] = self.ask_input("并发请求数", "16")
+        self.config["DOWNLOAD_DELAY"] = self.ask_input("下载延迟(秒)", "1")
+        self.config["PROXY_POOL_SIZE"] = self.ask_input("代理池大小", "100")
 
         # 第三方服务API
         if self.ask_yes_no("配置验证码识别服务?", False):
-            self.config['CAPTCHA_SERVICE_API_KEY'] = self.ask_input("验证码服务API Key")
+            self.config["CAPTCHA_SERVICE_API_KEY"] = self.ask_input("验证码服务API Key")
         else:
-            self.config['CAPTCHA_SERVICE_API_KEY'] = ""
+            self.config["CAPTCHA_SERVICE_API_KEY"] = ""
 
         if self.ask_yes_no("配置代理服务?", False):
-            self.config['PROXY_SERVICE_API_KEY'] = self.ask_input("代理服务API Key")
+            self.config["PROXY_SERVICE_API_KEY"] = self.ask_input("代理服务API Key")
         else:
-            self.config['PROXY_SERVICE_API_KEY'] = ""
+            self.config["PROXY_SERVICE_API_KEY"] = ""
 
         print("✅ 爬虫配置完成")
         print()
@@ -251,7 +273,7 @@ class ConfigWizard:
         if not self.env_example_path.exists():
             raise FileNotFoundError(f"模板文件不存在: {self.env_example_path}")
 
-        with open(self.env_example_path, 'r', encoding='utf-8') as f:
+        with open(self.env_example_path, "r", encoding="utf-8") as f:
             return f.read()
 
     def generate_env_content(self) -> str:
@@ -260,28 +282,28 @@ class ConfigWizard:
 
         # 设置默认值
         default_config = {
-            'REDIS_HOST': 'localhost',
-            'REDIS_PORT': '6379',
-            'REDIS_DB': '0',
-            'MONGODB_HOST': 'localhost',
-            'MONGODB_PORT': '27017',
-            'POSTGRES_HOST': 'localhost',
-            'POSTGRES_PORT': '5432',
-            'MINIO_ROOT_USER': 'minioadmin',
-            'MINIO_HOST': 'localhost',
-            'MINIO_PORT': '9000',
-            'MONGO_EXPRESS_USER': 'admin',
-            'PROMETHEUS_PORT': '8000',
-            'METRICS_ENABLED': 'true',
-            'ALERT_WEBHOOK_URL': '',
-            'RANDOMIZE_DOWNLOAD_DELAY': '0.5',
-            'RETRY_TIMES': '3',
-            'PROXY_VALIDATION_TIMEOUT': '10',
-            'PROXY_ROTATION_INTERVAL': '100',
-            'MIN_QUALITY_SCORE': '0.7',
-            'MAX_ERROR_RATE': '0.1',
-            'MIN_SUCCESS_RATE': '0.8',
-            'TZ': 'UTC'
+            "REDIS_HOST": "localhost",
+            "REDIS_PORT": "6379",
+            "REDIS_DB": "0",
+            "MONGODB_HOST": "localhost",
+            "MONGODB_PORT": "27017",
+            "POSTGRES_HOST": "localhost",
+            "POSTGRES_PORT": "5432",
+            "MINIO_ROOT_USER": "minioadmin",
+            "MINIO_HOST": "localhost",
+            "MINIO_PORT": "9000",
+            "MONGO_EXPRESS_USER": "admin",
+            "PROMETHEUS_PORT": "8000",
+            "METRICS_ENABLED": "true",
+            "ALERT_WEBHOOK_URL": "",
+            "RANDOMIZE_DOWNLOAD_DELAY": "0.5",
+            "RETRY_TIMES": "3",
+            "PROXY_VALIDATION_TIMEOUT": "10",
+            "PROXY_ROTATION_INTERVAL": "100",
+            "MIN_QUALITY_SCORE": "0.7",
+            "MAX_ERROR_RATE": "0.1",
+            "MIN_SUCCESS_RATE": "0.8",
+            "TZ": "UTC",
         }
 
         # 合并配置
@@ -302,13 +324,13 @@ class ConfigWizard:
         content = self.generate_env_content()
 
         # 保存到项目根目录
-        with open(self.env_path, 'w', encoding='utf-8') as f:
+        with open(self.env_path, "w", encoding="utf-8") as f:
             f.write(content)
         print(f"✅ 已保存: {self.env_path}")
 
         # 保存到Docker目录
         self.docker_env_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.docker_env_path, 'w', encoding='utf-8') as f:
+        with open(self.docker_env_path, "w", encoding="utf-8") as f:
             f.write(content)
         print(f"✅ 已保存: {self.docker_env_path}")
 
@@ -328,17 +350,17 @@ class ConfigWizard:
 
         print("🔐 重要信息 (请妥善保管)")
         print("-" * 30)
-        if self.config.get('POSTGRES_PASSWORD'):
+        if self.config.get("POSTGRES_PASSWORD"):
             print(f"PostgreSQL密码: {self.config['POSTGRES_PASSWORD']}")
-        if self.config.get('MONGODB_ROOT_PASSWORD'):
+        if self.config.get("MONGODB_ROOT_PASSWORD"):
             print(f"MongoDB密码: {self.config['MONGODB_ROOT_PASSWORD']}")
-        if self.config.get('REDIS_PASSWORD'):
+        if self.config.get("REDIS_PASSWORD"):
             print(f"Redis密码: {self.config['REDIS_PASSWORD']}")
-        if self.config.get('MONGO_EXPRESS_PASSWORD'):
+        if self.config.get("MONGO_EXPRESS_PASSWORD"):
             print(f"MongoDB管理界面密码: {self.config['MONGO_EXPRESS_PASSWORD']}")
-        if self.config.get('PGADMIN_PASSWORD'):
+        if self.config.get("PGADMIN_PASSWORD"):
             print(f"pgAdmin密码: {self.config['PGADMIN_PASSWORD']}")
-        if self.config.get('MINIO_ROOT_PASSWORD'):
+        if self.config.get("MINIO_ROOT_PASSWORD"):
             print(f"MinIO密码: {self.config['MINIO_ROOT_PASSWORD']}")
         print()
 

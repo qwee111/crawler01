@@ -14,7 +14,7 @@ import sys
 from collections import Counter, defaultdict
 
 # import pandas as pd
-# import numpy as np
+import numpy as np
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
@@ -112,7 +112,7 @@ class DiseaseDataAnalyzer:
             logger.error(f"MongoDB连接失败: {e}")
             return False
 
-    def load_data_from_mongodb(self, collection_name="adaptive_data", limit=None):
+    def load_data_from_mongodb(self, collection_name="bjcdc_data", limit=None):
         """从MongoDB加载数据"""
         if self.db is None:
             logger.error("数据库未连接")

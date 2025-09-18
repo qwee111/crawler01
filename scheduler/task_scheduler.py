@@ -136,7 +136,7 @@ class DistributedTaskScheduler:
             # 如果 url 为空，则使用 site_name 作为任务的标识
             if not task.url:
                 task.url = task.site_config.get("site", "default")
-                task.task_id = task.generate_task_id() # 重新生成任务ID以反映新的url
+                task.task_id = task.generate_task_id()  # 重新生成任务ID以反映新的url
 
             # 检查任务是否已存在
             if self.is_task_exists(task.task_id):

@@ -13,6 +13,10 @@ import sys
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
+# 配置日志
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # 添加项目路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -30,12 +34,9 @@ try:
     plt.rcParams["font.sans-serif"] = ["SimHei", "Microsoft YaHei"]
     plt.rcParams["axes.unicode_minus"] = False
     PLOT_AVAILABLE = True
-except ImportError:
+except Exception as e:
+    logger.warning(f"matplotlib或seaborn导入失败: {e}")
     PLOT_AVAILABLE = False
-
-# 配置日志
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 class DiseaseReportGenerator:
@@ -420,10 +421,14 @@ class DiseaseReportGenerator:
 
         try:
             # 运行数据分析
-            analysis_results = self.analyzer.run_full_analysis(days_back=days_back)
+            analysis_results = self.analyzer.generate_comprehensive_analysis(
+                data_source=None
+            )
 
-            if "error" in analysis_results:
-                return {"error": analysis_results["error"]}
+            if analysis_results is None or "error" in analysis_results:
+                return {
+                    "error": analysis_results["error"] if analysis_results else "分析结果为空"
+                }
 
             # 生成各种格式的报告
             report_files = {}

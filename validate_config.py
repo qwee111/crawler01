@@ -31,11 +31,11 @@ class ConfigValidator:
             return config
 
         try:
-            with open(env_path, 'r', encoding='utf-8') as f:
+            with open(env_path, "r", encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
-                    if line and not line.startswith('#') and '=' in line:
-                        key, value = line.split('=', 1)
+                    if line and not line.startswith("#") and "=" in line:
+                        key, value = line.split("=", 1)
                         config[key.strip()] = value.strip()
         except Exception as e:
             self.errors.append(f"读取配置文件失败 {env_path}: {e}")
@@ -63,16 +63,16 @@ class ConfigValidator:
         print("🔍 检查必需的环境变量...")
 
         required_vars = [
-            'ENVIRONMENT',
-            'POSTGRES_DB',
-            'POSTGRES_USER',
-            'POSTGRES_PASSWORD',
-            'MONGODB_ROOT_USERNAME',
-            'MONGODB_ROOT_PASSWORD',
-            'MONGODB_DATABASE',
-            'SECRET_KEY',
-            'API_TOKEN',
-            'JWT_SECRET'
+            "ENVIRONMENT",
+            "POSTGRES_DB",
+            "POSTGRES_USER",
+            "POSTGRES_PASSWORD",
+            "MONGODB_ROOT_USERNAME",
+            "MONGODB_ROOT_PASSWORD",
+            "MONGODB_DATABASE",
+            "SECRET_KEY",
+            "API_TOKEN",
+            "JWT_SECRET",
         ]
 
         missing_vars = []
@@ -93,18 +93,18 @@ class ConfigValidator:
         print("🔐 检查密码强度...")
 
         password_vars = [
-            'POSTGRES_PASSWORD',
-            'MONGODB_ROOT_PASSWORD',
-            'REDIS_PASSWORD',
-            'MONGO_EXPRESS_PASSWORD',
-            'PGADMIN_PASSWORD',
-            'MINIO_ROOT_PASSWORD'
+            "POSTGRES_PASSWORD",
+            "MONGODB_ROOT_PASSWORD",
+            "REDIS_PASSWORD",
+            "MONGO_EXPRESS_PASSWORD",
+            "PGADMIN_PASSWORD",
+            "MINIO_ROOT_PASSWORD",
         ]
 
         for var in password_vars:
-            password = self.config.get(var, '')
+            password = self.config.get(var, "")
             if not password:
-                if var == 'REDIS_PASSWORD':
+                if var == "REDIS_PASSWORD":
                     self.warnings.append(f"{var}: 未设置密码（可选但推荐）")
                 else:
                     self.errors.append(f"{var}: 密码为空")
@@ -134,17 +134,17 @@ class ConfigValidator:
         """检查安全密钥"""
         print("🔑 检查安全密钥...")
 
-        key_vars = ['SECRET_KEY', 'API_TOKEN', 'JWT_SECRET']
+        key_vars = ["SECRET_KEY", "API_TOKEN", "JWT_SECRET"]
 
         for var in key_vars:
-            key = self.config.get(var, '')
+            key = self.config.get(var, "")
             if not key:
                 self.errors.append(f"{var}: 密钥为空")
                 continue
 
             if len(key) < 32:
                 self.warnings.append(f"{var}: 密钥长度不足32位")
-            elif key.startswith('your-') or 'change-this' in key:
+            elif key.startswith("your-") or "change-this" in key:
                 self.errors.append(f"{var}: 使用了默认值，请更改")
             else:
                 print(f"✅ {var}: 密钥设置正确")
@@ -157,11 +157,11 @@ class ConfigValidator:
 
         # PostgreSQL
         pg_config = {
-            'host': self.config.get('POSTGRES_HOST', 'localhost'),
-            'port': self.config.get('POSTGRES_PORT', '5432'),
-            'database': self.config.get('POSTGRES_DB', ''),
-            'user': self.config.get('POSTGRES_USER', ''),
-            'password': self.config.get('POSTGRES_PASSWORD', '')
+            "host": self.config.get("POSTGRES_HOST", "localhost"),
+            "port": self.config.get("POSTGRES_PORT", "5432"),
+            "database": self.config.get("POSTGRES_DB", ""),
+            "user": self.config.get("POSTGRES_USER", ""),
+            "password": self.config.get("POSTGRES_PASSWORD", ""),
         }
 
         if all(pg_config.values()):
@@ -172,11 +172,11 @@ class ConfigValidator:
 
         # MongoDB
         mongo_config = {
-            'host': self.config.get('MONGODB_HOST', 'localhost'),
-            'port': self.config.get('MONGODB_PORT', '27017'),
-            'database': self.config.get('MONGODB_DATABASE', ''),
-            'username': self.config.get('MONGODB_ROOT_USERNAME', ''),
-            'password': self.config.get('MONGODB_ROOT_PASSWORD', '')
+            "host": self.config.get("MONGODB_HOST", "localhost"),
+            "port": self.config.get("MONGODB_PORT", "27017"),
+            "database": self.config.get("MONGODB_DATABASE", ""),
+            "username": self.config.get("MONGODB_ROOT_USERNAME", ""),
+            "password": self.config.get("MONGODB_ROOT_PASSWORD", ""),
         }
 
         if all(mongo_config.values()):
@@ -186,8 +186,8 @@ class ConfigValidator:
             self.errors.append(f"MongoDB配置不完整: {', '.join(missing)}")
 
         # Redis
-        redis_host = self.config.get('REDIS_HOST', 'localhost')
-        redis_port = self.config.get('REDIS_PORT', '6379')
+        redis_host = self.config.get("REDIS_HOST", "localhost")
+        redis_port = self.config.get("REDIS_PORT", "6379")
 
         if redis_host and redis_port:
             print("✅ Redis配置完整")
@@ -201,14 +201,14 @@ class ConfigValidator:
         print("🕷️ 检查爬虫配置...")
 
         crawler_vars = {
-            'CONCURRENT_REQUESTS': (1, 100),
-            'DOWNLOAD_DELAY': (0, 10),
-            'PROXY_POOL_SIZE': (1, 1000),
-            'RETRY_TIMES': (1, 10)
+            "CONCURRENT_REQUESTS": (1, 100),
+            "DOWNLOAD_DELAY": (0, 10),
+            "PROXY_POOL_SIZE": (1, 1000),
+            "RETRY_TIMES": (1, 10),
         }
 
         for var, (min_val, max_val) in crawler_vars.items():
-            value = self.config.get(var, '')
+            value = self.config.get(var, "")
             if not value:
                 self.warnings.append(f"{var}: 未设置，将使用默认值")
                 continue
@@ -218,7 +218,9 @@ class ConfigValidator:
                 if min_val <= num_value <= max_val:
                     print(f"✅ {var}: {value}")
                 else:
-                    self.warnings.append(f"{var}: 值 {value} 超出推荐范围 [{min_val}, {max_val}]")
+                    self.warnings.append(
+                        f"{var}: 值 {value} 超出推荐范围 [{min_val}, {max_val}]"
+                    )
             except ValueError:
                 self.errors.append(f"{var}: 无效的数值 '{value}'")
 
@@ -229,7 +231,7 @@ class ConfigValidator:
         print("📧 检查通知配置...")
 
         # 邮件配置
-        smtp_vars = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USERNAME', 'SMTP_PASSWORD']
+        smtp_vars = ["SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD"]
         smtp_configured = any(self.config.get(var) for var in smtp_vars)
 
         if smtp_configured:
@@ -242,9 +244,9 @@ class ConfigValidator:
             print("ℹ️ 邮件通知未配置")
 
         # Slack配置
-        slack_webhook = self.config.get('SLACK_WEBHOOK_URL')
+        slack_webhook = self.config.get("SLACK_WEBHOOK_URL")
         if slack_webhook:
-            if slack_webhook.startswith('https://hooks.slack.com/'):
+            if slack_webhook.startswith("https://hooks.slack.com/"):
                 print("✅ Slack配置正确")
             else:
                 self.warnings.append("Slack Webhook URL格式可能不正确")

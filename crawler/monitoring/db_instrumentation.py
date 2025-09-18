@@ -52,4 +52,3 @@ def instrument_mongo_client(client: Any, db: str = "mongodb") -> None:
             DB_POOL_SIZE.labels(db, ENV, INSTANCE).set(float(max_pool))
     except Exception:
         pass
-

@@ -45,6 +45,11 @@ dependencies = [
     "webdriver-manager>=4.0.2",
     "sqlalchemy>=2.0.43",
     "prometheus-client>=0.22.1",
+    "brotlicffi>=1.1.0.0",
+    "zai-sdk>=0.0.3.5",
+    "aliyun-python-sdk-core>=2.16.0",
+    "aliyun-python-sdk-alinlp>=1.0.24",
+    "scrapy-selenium>=0.0.7",
 ]
 
 # 包发现配置

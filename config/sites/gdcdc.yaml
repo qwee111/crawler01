@@ -1,27 +1,18 @@
-# 天津市疾病预防控制中心网站配置
+# 广东省疾病预防控制中心网站配置
 site_info:
-  name: "天津市疾病预防控制中心"
-  base_url: "http://www.cdctj.com.cn"
-  description: "天津市疾病预防控制中心数据爬取"
+  name: "广东省疾病预防控制中心"
+  base_url: "http://cdcp.gd.gov.cn/"
+  description: "广东省疾病预防控制中心数据爬取"
   domains:
-    - "cdctj.com.cn"
-    - "www.cdctj.com.cn"
+    - "cdcp.gd.gov.cn"
+    - "www.cdcp.gd.gov.cn"
   encoding: "utf-8"
   language: "zh-CN"
 
 # 目标页面配置
 start_urls:
-  - url: "https://www.cdctj.com.cn/xxpt/yqbg/"
-    name: "全国及天津市法定传染病疫情报告"
-    type: "list_page"
-  - url: "https://www.cdctj.com.cn/xxpt/yqdt/index.shtml"
-    name: "新型冠状病毒感染疫情动态"
-    type: "list_page"
-  - url: "https://www.cdctj.com.cn/gzdt/ggwsdt/"
-    name: "公共卫生动态"
-    type: "list_page"
-  - url: "https://www.cdctj.com.cn/gzdt/bsgzdt/"
-    name: "重点工作动态"
+  - url: "https://cdcp.gd.gov.cn/ywdt/tfggwssj/index.html"
+    name: "广东省疾病监测"
     type: "list_page"
 
 # 页面类型检测配置
@@ -81,18 +72,18 @@ extraction:
     fields:
       page_title:
         method: css
-        selector: ".d_over2"
+        selector: "h4 span"
         attr: text
         required: true
 
     list_items:
-      container: ".hanggao30.zi14 a"
+      container: ".list li"
       max_items: 50
       fields:
         title:
           method: css
           selector: "a"
-          attr: text
+          attr: title
         url:
           method: css
           selector: "a"
@@ -107,23 +98,23 @@ extraction:
     fields:
       title:
         method: css
-        selector: ".jiacu"
+        selector: "h3"
         attr: text
         required: true
       content:
         method: css
-        selector: ".xiahua"
+        selector: ".article p"
         attr: text
         multiple: true
         required: true
       source:
         method: css
-        selector: ".zi12"
+        selector: ".ly"
         type: string
         required: false
       publish_date:
         method: css
-        selector: ".zi12"
+        selector: ".ly"
         type: date
         required: false
       image_urls:
@@ -195,7 +186,7 @@ update_detection:
   list_refresh_interval: 900
 
 storage:
-  collection_name: "cdctj_data"
+  collection_name: "gdcdc_data"
   indexes:
     - field: "publish_date"
       order: -1

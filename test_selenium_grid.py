@@ -15,16 +15,15 @@ def test_chrome():
 
     try:
         options = ChromeOptions()
-        options.add_argument('--headless')
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument("--headless")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
 
         driver = webdriver.Remote(
-            command_executor='http://localhost:4444/wd/hub',
-            options=options
+            command_executor="http://localhost:4444/wd/hub", options=options
         )
 
-        driver.get('http://httpbin.org/ip')
+        driver.get("http://httpbin.org/ip")
         print(f"✅ Chrome测试成功: {driver.title}")
         print(f"📄 页面内容: {driver.page_source[:100]}...")
 
@@ -42,14 +41,13 @@ def test_firefox():
 
     try:
         options = FirefoxOptions()
-        options.add_argument('--headless')
+        options.add_argument("--headless")
 
         driver = webdriver.Remote(
-            command_executor='http://localhost:4444/wd/hub',
-            options=options
+            command_executor="http://localhost:4444/wd/hub", options=options
         )
 
-        driver.get('http://httpbin.org/ip')
+        driver.get("http://httpbin.org/ip")
         print(f"✅ Firefox测试成功: {driver.title}")
         print(f"📄 页面内容: {driver.page_source[:100]}...")
 

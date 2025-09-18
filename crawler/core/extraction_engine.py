@@ -189,7 +189,8 @@ class ExtractionEngine:
             cleaned = []
             for value in values:
                 if isinstance(value, str):
-                    cleaned_value = value.strip()
+                    # 移除所有空白字符（包括 \r, \n, \t, \xa0）并替换为单个空格，然后去除首尾空白
+                    cleaned_value = re.sub(r"\s+", " ", value).strip()
                     if cleaned_value:
                         converted_value = self._convert_type(cleaned_value, field_type)
                         if converted_value is not None:
@@ -197,7 +198,8 @@ class ExtractionEngine:
             return cleaned if cleaned else None
         else:
             if isinstance(values, str):
-                cleaned = values.strip()
+                # 移除所有空白字符（包括 \r, \n, \t, \xa0）并替换为单个空格，然后去除首尾空白
+                cleaned = re.sub(r"\s+", " ", values).strip()
                 if cleaned:
                     return self._convert_type(cleaned, field_type)
             return values
@@ -294,18 +296,25 @@ class ExtractionEngine:
             return None
 
         try:
+            raw_value = None
             if method == "css":
                 if attr == "text":
-                    return element.css(f"{selector}::text").get()
+                    raw_value = element.css(f"{selector}::text").get()
                 else:
-                    return element.css(f"{selector}::attr({attr})").get()
+                    raw_value = element.css(f"{selector}::attr({attr})").get()
             elif method == "xpath":
                 if attr == "text":
-                    return element.xpath(f"{selector}/text()").get()
+                    raw_value = element.xpath(f"{selector}/text()").get()
                 else:
-                    return element.xpath(f"{selector}/@{attr}").get()
+                    raw_value = element.xpath(f"{selector}/@{attr}").get()
             else:
                 return None
+
+            # 对提取到的值进行清洗
+            if raw_value is not None:
+                # 假设列表项中的字段类型默认为 'string'
+                return self._clean_and_convert(raw_value, "string", False)
+            return None
 
         except Exception as e:
             logger.error(f"元素字段提取失败: {e}")

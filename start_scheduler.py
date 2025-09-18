@@ -108,19 +108,19 @@ class SchedulerSystemManager:
 
         test_tasks = [
             {
-                "spider_name": "adaptive",
+                "spider_name": "adaptive_v2",
                 "url": "https://www.bjcdc.org/cdcmodule/jkdt/bsxw/index.shtml",
                 "priority": TaskPriority.HIGH,
                 "site_config": {"site": "bjcdc"},
             },
             {
-                "spider_name": "adaptive",
+                "spider_name": "adaptive_v2",
                 "url": "https://www.bjcdc.org/cdcmodule/jkdt/jcdt/index.shtml",
                 "priority": TaskPriority.NORMAL,
                 "site_config": {"site": "bjcdc"},
             },
             {
-                "spider_name": "adaptive",
+                "spider_name": "adaptive_v2",
                 "url": "https://www.bjcdc.org/cdcmodule/jkdt/yqbb/index.shtml",
                 "priority": TaskPriority.URGENT,
                 "site_config": {"site": "bjcdc"},
@@ -248,7 +248,11 @@ class SchedulerSystemManager:
         if site == "all":
             # 从 config_manager 获取所有站点名称
             all_configs = self.config_manager.get_config_versions().keys()
-            target_sites = [name.replace("sites/", "") for name in all_configs if name.startswith("sites/")]
+            target_sites = [
+                name.replace("sites/", "")
+                for name in all_configs
+                if name.startswith("sites/")
+            ]
             logger.info(f"提交所有站点任务: {target_sites}")
         else:
             target_sites.append(site)
@@ -261,26 +265,45 @@ class SchedulerSystemManager:
                 logger.error(f"❌ 未找到站点 '{current_site}' 的配置")
                 continue
 
-            start_urls_config = site_config.get("start_urls", [])
-            if not start_urls_config:
-                logger.warning(f"⚠️ 站点 '{current_site}' 没有配置 start_urls")
-                continue
+            # start_urls_config = site_config.get("start_urls", [])
+            # if not start_urls_config:
+            #     logger.warning(f"⚠️ 站点 '{current_site}' 没有配置 start_urls")
+            #     continue
 
-            urls = [item["url"] for item in start_urls_config if "url" in item]
-            logger.info(f"提交站点 '{current_site}' 的 {len(urls)} 个任务...")
+            # urls = [item["url"] for item in start_urls_config if "url" in item]
+            # logger.info(f"提交站点 '{current_site}' 的 {len(urls)} 个任务...")
 
             submitted_count = 0
-            for url in urls:
+            if current_site == "baidu_news":
+                # 为百度新闻爬虫提交一个特殊任务，URL可以为空，因为Spider会动态生成
                 success = self.submit_custom_task(
-                    spider_name="adaptive_v2", # 使用 adaptive_v2 爬虫
-                    url=url,
+                    spider_name="baidu_news",
+                    url="",  # URL留空，由Spider的start_requests生成
                     site=current_site,
-                    priority="NORMAL"
+                    priority="NORMAL",
                 )
                 if success:
                     submitted_count += 1
+            else:
+                # 现有逻辑，为其他站点提交任务
+                # 假设其他站点有 start_urls 配置
+                start_urls_config = site_config.get("start_urls", [])
+                if not start_urls_config:
+                    logger.warning(f"⚠️ 站点 '{current_site}' 没有配置 start_urls")
+                    continue
+                urls = [item["url"] for item in start_urls_config if "url" in item]
+                logger.info(f"提交站点 '{current_site}' 的 {len(urls)} 个任务...")
+                for url in urls:
+                    success = self.submit_custom_task(
+                        spider_name="adaptive_v2",  # 使用 adaptive_v2 爬虫
+                        url=url,
+                        site=current_site,
+                        priority="NORMAL",
+                    )
+                    if success:
+                        submitted_count += 1
             total_submitted_count += submitted_count
-            logger.info(f"站点 '{current_site}' 任务提交完成: {submitted_count}/{len(urls)} 个任务成功")
+            logger.info(f"站点 '{current_site}' 任务提交完成")
 
         logger.info(f"所有站点任务提交完成: 共 {total_submitted_count} 个任务成功")
 

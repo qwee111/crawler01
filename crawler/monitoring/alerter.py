@@ -53,6 +53,8 @@ def _send_wechat(subject: str, content: str, level: str) -> None:
     url = os.getenv("ALERT_WECHAT_WEBHOOK")
     if not url:
         return
-    payload = {"msgtype": "markdown", "markdown": {"content": f"**{subject}**\n{content}"}}
+    payload = {
+        "msgtype": "markdown",
+        "markdown": {"content": f"**{subject}**\n{content}"},
+    }
     requests.post(url, json=payload, timeout=5)
-

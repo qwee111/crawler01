@@ -22,7 +22,7 @@ def load_env_file() -> None:
     env_file = project_root / ".env"
 
     if env_file.exists():
-        print(f"加载环境变量文件: {env_file}") # 移除emoji
+        print(f"加载环境变量文件: {env_file}")  # 移除emoji
         with open(env_file, "r", encoding="utf-8") as f:
             for line_num, line in enumerate(f, 1):
                 line = line.strip()
@@ -39,10 +39,10 @@ def load_env_file() -> None:
                         os.environ[key] = value
                         # print(f"  ✅ {key}={'*' * len(value) if 'PASSWORD' in key else value}")
                     except ValueError:
-                        print(f"  跳过无效行 {line_num}: {line}") # 移除emoji
-        print("环境变量加载完成") # 移除emoji
+                        print(f"  跳过无效行 {line_num}: {line}")  # 移除emoji
+        print("环境变量加载完成")  # 移除emoji
     else:
-        print(f"环境变量文件不存在: {env_file}") # 移除emoji
+        print(f"环境变量文件不存在: {env_file}")  # 移除emoji
 
 
 # 在导入时立即加载环境变量
@@ -75,8 +75,8 @@ COOKIES_ENABLED = True
 # Disable Telnet Console (enabled by default)
 TELNETCONSOLE_ENABLED = False
 
-MYEXT_ENABLED=True      # 开启扩展
-IDLE_NUMBER=12           # 配置空闲持续时间单位为 12个 ，一个时间单位为5s
+MYEXT_ENABLED = True  # 开启扩展
+IDLE_NUMBER = 12  # 配置空闲持续时间单位为 12个 ，一个时间单位为5s
 
 # Override the default request headers:
 DEFAULT_REQUEST_HEADERS = {
@@ -102,22 +102,24 @@ DOWNLOADER_MIDDLEWARES = {
     "crawler.middlewares.CrawlerDownloaderMiddleware": 543,
     # 第二阶段中间件 - 反爬机制应对
     "crawler.selenium_middleware.SeleniumMiddleware": 585,
-    "anti_crawl.middleware.AntiCrawlMiddleware": 590,
+    # "anti_crawl.middleware.AntiCrawlMiddleware": 590,
     # 'anti_crawl.middleware.CaptchaMiddleware': 595,  # 可选
-    "anti_crawl.middleware.BehaviorSimulationMiddleware": 600,
+    # "anti_crawl.middleware.BehaviorSimulationMiddleware": 600,
     # 'anti_crawl.middleware.HeaderRotationMiddleware': 605,  # 可选
 }
 
 # Enable or disable extensions
 EXTENSIONS = {
-    'scrapy.extensions.telnet.TelnetConsole': None,
-    'crawler.monitoring.scrapy_ext.MetricsExtension': 500,
+    "scrapy.extensions.telnet.TelnetConsole": None,
+    "crawler.monitoring.scrapy_ext.MetricsExtension": 500,
     # 'crawler.extensions.PrometheusExtension': 600,
-    'crawler.extensions.RedisSpiderSmartIdleClosedExensions': 700,
+    "crawler.extensions.RedisSpiderSmartIdleClosedExensions": 700,
 }
 
 # Configure item pipelines - 数据处理管道
 ITEM_PIPELINES = {
+    # AI判断管道，在数据清洗和去重后，内容更新前执行
+    # "crawler.pipelines.AIPipeline": 200, # 新增：AI判断管道
     # （可选）增强数据处理管道
     # "data_processing.enhanced_pipelines.EnhancedExtractionPipeline": 200,
     "data_processing.enhanced_pipelines.DataEnrichmentPipeline": 300,
@@ -179,8 +181,8 @@ if MINIO_ENABLED and MINIO_BUCKET and MINIO_ACCESS_KEY and MINIO_SECRET_KEY:
 # Enable autothrottling
 AUTOTHROTTLE_ENABLED = True  # 自动限速
 AUTOTHROTTLE_START_DELAY = 1  # 初始下载延迟
-AUTOTHROTTLE_MAX_DELAY = 60  # 最大延迟
-AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0  # 目标并发数
+AUTOTHROTTLE_MAX_DELAY = 5  # 最大延迟
+AUTOTHROTTLE_TARGET_CONCURRENCY = 16.0  # 目标并发数
 AUTOTHROTTLE_DEBUG = False  # 调试模式
 
 # Enable and configure HTTP caching
@@ -252,26 +254,33 @@ POSTGRES_DATABASE = os.getenv("POSTGRES_DB", "crawler_db")
 POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres")
 POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "123456")
 
-# Proxy settings
+# 代理池配置
 PROXY_POOL_SIZE = int(os.getenv("PROXY_POOL_SIZE", 100))
 PROXY_VALIDATION_TIMEOUT = int(os.getenv("PROXY_VALIDATION_TIMEOUT", 10))
 
-# Monitoring settings
+# 监控设置
 PROMETHEUS_PORT = int(os.getenv("PROMETHEUS_PORT", 9108))
 METRICS_ENABLED = os.getenv("METRICS_ENABLED", "True").lower() == "true"
 
-# Logging
+# 日志配置
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 # LOG_FILE = os.path.join(BASE_DIR, 'logs', 'scrapy.log')
 
-# Security
+# 显式设置 pymongo 日志级别
+import logging
+
+# logging.getLogger('pymongo').setLevel(logging.INFO)
+# logging.getLogger('boto3').setLevel(logging.WARNING)
+# logging.getLogger('botocore').setLevel(logging.WARNING)
+
+# 安全设置
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")
 API_TOKEN = os.getenv("API_TOKEN", "your-api-token-here")
 
 # Custom settings
 RANDOMIZE_DOWNLOAD_DELAY = 0.5
-DOWNLOAD_TIMEOUT = 180
-RETRY_TIMES = 3
+DOWNLOAD_TIMEOUT = 60
+RETRY_TIMES = 2
 RETRY_HTTP_CODES = [500, 502, 503, 504, 408, 429]
 
 # 当调度器在指定时间内没有新的请求被接收时，自动关闭爬虫（单位：秒）
@@ -305,7 +314,7 @@ REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
 # ============================================================================
 
 # Selenium Grid配置
-SELENIUM_ENABLED = False  # 默认关闭，可通过命令行参数启用
+SELENIUM_ENABLED = True  # 默认关闭，可通过命令行参数启用
 SELENIUM_GRID_URL = "http://localhost:4444"
 SELENIUM_BROWSER = "firefox"  # chrome 或 firefox
 SELENIUM_IMPLICIT_WAIT = 10
@@ -313,8 +322,8 @@ SELENIUM_PAGE_LOAD_TIMEOUT = 30
 SELENIUM_WINDOW_SIZE = (1920, 1080)
 
 # 反爬虫检测配置
-ANTI_CRAWL_ENABLED = True
-ANTI_CRAWL_AUTO_RETRY = True
+ANTI_CRAWL_ENABLED = False
+ANTI_CRAWL_AUTO_RETRY = False
 ANTI_CRAWL_MAX_RETRIES = 3
 ANTI_CRAWL_RETRY_DELAY = 5
 

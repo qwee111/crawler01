@@ -206,20 +206,35 @@ class AdaptiveSpiderV2(RedisSpider):
             headers = payload.get("headers")
             cb_name = payload.get("callback")
             cb_fn = getattr(self, cb_name, None) if cb_name else self.parse
+            # 透传 site
+            if self.target_site and "site" not in meta:
+                meta["site"] = self.target_site
+            elif "site" in payload:
+                meta.setdefault("site", payload["site"])
+
+            # 如果站点配置中启用了 Selenium，则在 meta 中添加 use_selenium
+            if self.site_config and self.site_config.get("selenium", {}).get(
+                "enabled", False
+            ):
+                meta["use_selenium"] = True
+
             req = scrapy.Request(
                 url, callback=cb_fn, headers=headers, meta=meta, dont_filter=False
             )
-            # 透传 site
-            if self.target_site and "site" not in req.meta:
-                req.meta["site"] = self.target_site
-            elif "site" in payload:
-                req.meta.setdefault("site", payload["site"])
             return req
         except Exception:
             # 兼容纯字符串 URL
-            req = scrapy.Request(text, callback=self.parse, dont_filter=False)
-            if self.target_site and "site" not in req.meta:
-                req.meta["site"] = self.target_site
+            meta = {}
+            if self.target_site:
+                meta["site"] = self.target_site
+                # 如果站点配置中启用了 Selenium，则在 meta 中添加 use_selenium
+                if self.site_config and self.site_config.get("selenium", {}).get(
+                    "enabled", False
+                ):
+                    meta["use_selenium"] = True
+            req = scrapy.Request(
+                text, callback=self.parse, dont_filter=False, meta=meta
+            )
             return req
 
     async def start(self):
@@ -249,11 +264,20 @@ class AdaptiveSpiderV2(RedisSpider):
         if start_urls:
             for url in start_urls:
                 logger.info(f"📋 初始URL已作为请求 yield: {url}")
+                meta = {
+                    "page_type": "list_page",
+                    "site_name": self.target_site,
+                    "site": self.target_site,
+                }
+                if self.site_config and self.site_config.get("selenium", {}).get(
+                    "enabled", False
+                ):
+                    meta["use_selenium"] = True
                 yield scrapy.Request(
                     url=url,
                     callback=self.parse,
-                    dont_filter=True, # 初始种子通常不应被去重器过滤
-                    meta={"page_type": "list_page", "site_name": self.target_site, "site": self.target_site}, # 添加 site 到 meta
+                    dont_filter=True,  # 初始种子通常不应被去重器过滤
+                    meta=meta,
                     errback=self.handle_error,
                 )
         else:
@@ -326,6 +350,7 @@ class AdaptiveSpiderV2(RedisSpider):
                     extracted.get("items", []) if isinstance(extracted, dict) else []
                 )
                 logger.info(f"🧮 列表项数量: {len(items)}")
+                logger.info(f"🧪 列表项样例: {items[:1]}")
                 if items:
                     yield from self._handle_list_incremental(response, site_name, items)
                     return
@@ -457,6 +482,7 @@ class AdaptiveSpiderV2(RedisSpider):
         return self.site_detector.detect_site(response.url)
 
     def _schedule_next_refresh(self, list_url: str, interval: int):
+        """登记列表页的下次刷新时间（使用 Redis ZSET 实现）"""
         if not self.server:
             return
         try:
@@ -525,7 +551,7 @@ class AdaptiveSpiderV2(RedisSpider):
         self._schedule_next_refresh(response.url, interval)
 
         to_follow = []
-        for it in items:
+        for i, it in enumerate(items):  # 添加索引 i
             if not isinstance(it, dict):
                 continue
             url = it.get("url")
@@ -537,11 +563,25 @@ class AdaptiveSpiderV2(RedisSpider):
                     "url": absolute_url,
                     "list_title": it.get("title"),
                     "list_date": it.get("date") or it.get("publish_date"),
+                    "item_index": i,  # 添加索引
                 }
             )
 
         if not to_follow:
             return
+
+        # 获取 click_selector 配置
+        click_selector_config = (
+            self.site_config.get("extraction", {})
+            .get("list_page", {})
+            .get("list_items", {})
+            .get("fields", {})
+            .get("click_selector", {})
+        )
+        click_selector_value = click_selector_config.get("selector")
+        use_selenium_for_site = self.site_config and self.site_config.get(
+            "selenium", {}
+        ).get("enabled", False)
 
         # Redis 增量：只抓新链接
         seen_key = f"seen_articles:{site_name or 'default'}"
@@ -553,10 +593,25 @@ class AdaptiveSpiderV2(RedisSpider):
             if entry.get("list_date"):
                 meta["list_date"] = entry["list_date"]
 
+            # 如果配置了 click_selector 并且站点启用了 Selenium
+            if click_selector_value and use_selenium_for_site:
+                meta["use_selenium"] = True
+                meta["selenium_click_selector"] = click_selector_value
+                meta["selenium_item_index"] = entry["item_index"]
+                meta["detail_page_url"] = link  # 存储真实的详情页URL，用于后续去重和数据关联
+                request_url = response.url  # 请求列表页
+            elif (
+                use_selenium_for_site
+            ):  # 如果只启用了Selenium，但没有click_selector，则按原Selenium逻辑处理
+                meta["use_selenium"] = True
+                request_url = link
+            else:  # 不使用Selenium
+                request_url = link
+
             if not self.server:
                 # 降级：不使用增量过滤
                 yield scrapy.Request(
-                    url=link,
+                    url=request_url,  # 使用新的 request_url
                     callback=self.parse,
                     meta=meta,
                     errback=self.handle_error,
@@ -568,7 +623,7 @@ class AdaptiveSpiderV2(RedisSpider):
                 if not self.server.sismember(seen_key, uhash):
                     self.server.sadd(seen_key, uhash)
                     yield scrapy.Request(
-                        url=link,
+                        url=request_url,  # 使用新的 request_url
                         callback=self.parse,
                         meta=meta,
                         errback=self.handle_error,
@@ -576,7 +631,7 @@ class AdaptiveSpiderV2(RedisSpider):
             except Exception as e:
                 logger.warning(f"⚠️ Redis 增量识别失败，降级直抓: {e}")
                 yield scrapy.Request(
-                    url=link,
+                    url=request_url,  # 使用新的 request_url
                     callback=self.parse,
                     meta=meta,
                     errback=self.handle_error,
@@ -717,7 +772,7 @@ class AdaptiveSpiderV2(RedisSpider):
                         links.append(item["url"])
 
             # 限制链接数量
-            max_links = 10  # 可配置
+            max_links = 50  # 可配置
             links = links[:max_links]
 
             logger.info(f"🔗 准备跟进 {len(links)} 个链接")

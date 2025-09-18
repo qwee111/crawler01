@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ValidationResult:
     """验证结果"""
+
     is_valid: bool
     response_time: float
     anonymity_level: str
@@ -35,26 +36,26 @@ class ProxyValidator:
         self.config = config or {}
 
         # 验证配置
-        self.timeout = self.config.get('timeout', 10)
-        self.max_retries = self.config.get('max_retries', 2)
+        self.timeout = self.config.get("timeout", 10)
+        self.max_retries = self.config.get("max_retries", 2)
 
         # 测试URL
-        self.test_urls = self.config.get('test_urls', [
-            'http://httpbin.org/ip',
-            'http://httpbin.org/headers',
-            'https://www.google.com'
-        ])
+        self.test_urls = self.config.get(
+            "test_urls",
+            [
+                "http://httpbin.org/ip",
+                "http://httpbin.org/headers",
+                "https://www.google.com",
+            ],
+        )
 
         # 匿名性检查头部
-        self.anonymity_headers = self.config.get('check_headers', [
-            'X-Forwarded-For',
-            'X-Real-IP',
-            'Via',
-            'Proxy-Connection'
-        ])
+        self.anonymity_headers = self.config.get(
+            "check_headers", ["X-Forwarded-For", "X-Real-IP", "Via", "Proxy-Connection"]
+        )
 
         # 线程池
-        self.max_workers = self.config.get('max_workers', 20)
+        self.max_workers = self.config.get("max_workers", 20)
 
     def validate_proxy(self, proxy_info: ProxyInfo) -> ValidationResult:
         """验证单个代理"""
@@ -65,18 +66,15 @@ class ProxyValidator:
             session = requests.Session()
 
             # 设置代理
-            proxies = {
-                'http': proxy_info.url,
-                'https': proxy_info.url
-            }
+            proxies = {"http": proxy_info.url, "https": proxy_info.url}
 
             # 设置请求头
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate',
-                'Connection': 'keep-alive',
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.5",
+                "Accept-Encoding": "gzip, deflate",
+                "Connection": "keep-alive",
             }
 
             # 执行测试
@@ -90,7 +88,7 @@ class ProxyValidator:
                         proxies=proxies,
                         headers=headers,
                         timeout=self.timeout,
-                        verify=False
+                        verify=False,
                     )
 
                     if response.status_code == 200:
@@ -117,7 +115,7 @@ class ProxyValidator:
                 is_valid=is_valid,
                 response_time=response_time,
                 anonymity_level=anonymity_level,
-                test_results=test_results
+                test_results=test_results,
             )
 
         except Exception as e:
@@ -125,31 +123,31 @@ class ProxyValidator:
             return ValidationResult(
                 is_valid=False,
                 response_time=response_time,
-                anonymity_level='unknown',
-                error_message=str(e)
+                anonymity_level="unknown",
+                error_message=str(e),
             )
         finally:
             session.close()
 
-    def _check_anonymity(self, session: requests.Session, proxies: Dict, real_ip: str) -> str:
+    def _check_anonymity(
+        self, session: requests.Session, proxies: Dict, real_ip: str
+    ) -> str:
         """检查代理匿名性"""
         try:
             response = session.get(
-                'http://httpbin.org/headers',
-                proxies=proxies,
-                timeout=self.timeout
+                "http://httpbin.org/headers", proxies=proxies, timeout=self.timeout
             )
 
             if response.status_code != 200:
-                return 'unknown'
+                return "unknown"
 
-            headers = response.json().get('headers', {})
+            headers = response.json().get("headers", {})
 
             # 检查是否暴露真实IP
             for header_name in self.anonymity_headers:
-                header_value = headers.get(header_name, '')
+                header_value = headers.get(header_name, "")
                 if real_ip in header_value:
-                    return 'transparent'  # 透明代理
+                    return "transparent"  # 透明代理
 
             # 检查是否有代理相关头部
             has_proxy_headers = any(
@@ -157,23 +155,24 @@ class ProxyValidator:
             )
 
             if has_proxy_headers:
-                return 'anonymous'  # 匿名代理
+                return "anonymous"  # 匿名代理
             else:
-                return 'elite'  # 高匿代理
+                return "elite"  # 高匿代理
 
         except Exception as e:
             logger.debug(f"匿名性检查失败: {e}")
-            return 'unknown'
+            return "unknown"
 
-    def validate_proxies_batch(self, proxies: List[ProxyInfo]) -> List[Tuple[ProxyInfo, ValidationResult]]:
+    def validate_proxies_batch(
+        self, proxies: List[ProxyInfo]
+    ) -> List[Tuple[ProxyInfo, ValidationResult]]:
         """批量验证代理"""
         results = []
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # 提交验证任务
             future_to_proxy = {
-                executor.submit(self.validate_proxy, proxy): proxy
-                for proxy in proxies
+                executor.submit(self.validate_proxy, proxy): proxy for proxy in proxies
             }
 
             # 收集结果
@@ -187,14 +186,16 @@ class ProxyValidator:
                     error_result = ValidationResult(
                         is_valid=False,
                         response_time=0,
-                        anonymity_level='unknown',
-                        error_message=str(e)
+                        anonymity_level="unknown",
+                        error_message=str(e),
                     )
                     results.append((proxy, error_result))
 
         return results
 
-    def get_validation_stats(self, results: List[Tuple[ProxyInfo, ValidationResult]]) -> Dict:
+    def get_validation_stats(
+        self, results: List[Tuple[ProxyInfo, ValidationResult]]
+    ) -> Dict:
         """获取验证统计信息"""
         if not results:
             return {}
@@ -209,21 +210,27 @@ class ProxyValidator:
         for proxy, result in results:
             if result.is_valid:
                 anonymity_level = result.anonymity_level
-                anonymity_stats[anonymity_level] = anonymity_stats.get(anonymity_level, 0) + 1
+                anonymity_stats[anonymity_level] = (
+                    anonymity_stats.get(anonymity_level, 0) + 1
+                )
                 response_times.append(result.response_time)
 
         # 计算平均响应时间
-        avg_response_time = sum(response_times) / len(response_times) if response_times else 0
+        avg_response_time = (
+            sum(response_times) / len(response_times) if response_times else 0
+        )
 
         return {
-            'total_proxies': total_count,
-            'valid_proxies': valid_count,
-            'success_rate': valid_count / total_count,
-            'average_response_time': avg_response_time,
-            'anonymity_distribution': anonymity_stats
+            "total_proxies": total_count,
+            "valid_proxies": valid_count,
+            "success_rate": valid_count / total_count,
+            "average_response_time": avg_response_time,
+            "anonymity_distribution": anonymity_stats,
         }
 
-    def filter_valid_proxies(self, results: List[Tuple[ProxyInfo, ValidationResult]]) -> List[ProxyInfo]:
+    def filter_valid_proxies(
+        self, results: List[Tuple[ProxyInfo, ValidationResult]]
+    ) -> List[ProxyInfo]:
         """过滤出有效代理"""
         valid_proxies = []
 
@@ -259,21 +266,21 @@ class ProxyValidator:
 
         # 匿名性评分 (30%)
         anonymity_scores = {
-            'elite': 30,
-            'anonymous': 25,
-            'transparent': 15,
-            'unknown': 5
+            "elite": 30,
+            "anonymous": 25,
+            "transparent": 15,
+            "unknown": 5,
         }
         score += anonymity_scores.get(result.anonymity_level, 0)
 
         # 成功率评分 (20%)
-        if hasattr(proxy, 'success_rate'):
+        if hasattr(proxy, "success_rate"):
             score += proxy.success_rate * 20
         else:
             score += 20  # 新代理给满分
 
         # 稳定性评分 (10%)
-        if hasattr(proxy, 'fail_count'):
+        if hasattr(proxy, "fail_count"):
             if proxy.fail_count == 0:
                 score += 10
             elif proxy.fail_count < 3:

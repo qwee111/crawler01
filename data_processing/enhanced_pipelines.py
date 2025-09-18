@@ -409,14 +409,21 @@ class ComprehensiveDataPipeline:
     # ===== 辅助：在清洗之后再次保证身份/slug 一致 =====
     def _ensure_article_identity_final(self, adapter: ItemAdapter) -> None:
         import hashlib, re
+
         url = str(adapter.get("url", ""))
         if url and not adapter.get("article_id"):
             adapter["article_id"] = hashlib.sha1(url.encode("utf-8")).hexdigest()[:16]
         title = str(adapter.get("title", ""))
         if title:
             # 使用与 DataEnrichmentPipeline 相同的清洗规则
-            clean_title = self._clean_title_for_slug(title) if hasattr(self, "_clean_title_for_slug") else title
-            slug = re.sub(r"[\s]+", "-", re.sub(r"[^\w\-\u4e00-\u9fff]", "", clean_title)).strip("-")[:60]
+            clean_title = (
+                self._clean_title_for_slug(title)
+                if hasattr(self, "_clean_title_for_slug")
+                else title
+            )
+            slug = re.sub(
+                r"[\s]+", "-", re.sub(r"[^\w\-\u4e00-\u9fff]", "", clean_title)
+            ).strip("-")[:60]
             if slug:
                 adapter["title_slug"] = slug
 
@@ -665,9 +672,7 @@ class DataEnrichmentPipeline:
             return result
 
         base_url = (
-            (adapter.get("response_meta") or {}).get("url")
-            or adapter.get("url")
-            or ""
+            (adapter.get("response_meta") or {}).get("url") or adapter.get("url") or ""
         )
 
         adapter["image_urls"] = normalize_list(adapter.get("image_urls"), base_url)
@@ -677,13 +682,13 @@ class DataEnrichmentPipeline:
         if adapter.get("image_urls") and not adapter.get("cover_image"):
             adapter["cover_image"] = adapter["image_urls"][0]
 
-
     def _ensure_article_identity(self, adapter: ItemAdapter) -> None:
         """为资源下载与命名准备稳定标识与人类可读slug。
         - article_id: 取 url 的 sha1 前16位
         - title_slug: 标题去非法字符、空白转短横线、最长60
         """
         import hashlib, re
+
         url = str(adapter.get("url", ""))
         if url and not adapter.get("article_id"):
             adapter["article_id"] = hashlib.sha1(url.encode("utf-8")).hexdigest()[:16]
@@ -692,17 +697,19 @@ class DataEnrichmentPipeline:
             # 清洗标题，去掉样式串与HTML，优先从首个中文字符开始
             clean_title = self._clean_title_for_slug(title)
             # 允许中英文、数字与连字符；空白转-，截断长度
-            slug = re.sub(r"[\s]+", "-", re.sub(r"[^\w\-\u4e00-\u9fff]", "", clean_title))
+            slug = re.sub(
+                r"[\s]+", "-", re.sub(r"[^\w\-\u4e00-\u9fff]", "", clean_title)
+            )
             slug = slug.strip("-")[:60]
             if slug:
                 adapter["title_slug"] = slug
-
 
     def _clean_title_for_slug(self, title: str) -> str:
         """去掉样式串/HTML标签，尽量从首个中文字符开始取标题。
         针对类似 'tdclasshanggao30zi18jiacualigncenter市疾控中心开展...' 的情况。
         """
         import re
+
         if not title:
             return ""
         s = str(title)
@@ -719,5 +726,5 @@ class DataEnrichmentPipeline:
         # 若存在中文，截断到第一个中文字符开始
         m = re.search(r"[\u4e00-\u9fff]", s)
         if m:
-            s = s[m.start():]
+            s = s[m.start() :]
         return s.strip()

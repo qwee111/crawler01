@@ -89,7 +89,9 @@ MEM_USAGE = Gauge(
 PROC_COUNT = Gauge("crawler_process_count", "进程数", labelnames=("env", "instance"))
 THREAD_COUNT = Gauge("crawler_thread_count", "线程数", labelnames=("env", "instance"))
 NET_CONN = Gauge("crawler_net_connections", "网络连接数", labelnames=("env", "instance"))
-TCP_HANDLES = Gauge("crawler_tcp_handles", "TCP 句柄数(估算)", labelnames=("env", "instance"))
+TCP_HANDLES = Gauge(
+    "crawler_tcp_handles", "TCP 句柄数(估算)", labelnames=("env", "instance")
+)
 DISK_USAGE = Gauge(
     "crawler_disk_usage_percent", "磁盘使用率(%)", labelnames=("mount", "env", "instance")
 )
@@ -110,7 +112,9 @@ DB_POOL_SIZE = Gauge(
 )
 
 # Redis 状态
-REDIS_UP = Gauge("crawler_redis_up", "Redis 连接是否可用(1/0)", labelnames=("env", "instance"))
+REDIS_UP = Gauge(
+    "crawler_redis_up", "Redis 连接是否可用(1/0)", labelnames=("env", "instance")
+)
 REDIS_CONNECTED_CLIENTS = Gauge(
     "crawler_redis_connected_clients", "Redis 连接数", labelnames=("env", "instance")
 )
@@ -126,6 +130,11 @@ REDIS_SLOWLOG_LEN = Gauge(
 
 # 便捷工具
 
-def labels_site(spider: str, site: Optional[str]) -> dict[str, str]:
-    return {"spider": spider, "site": site or "default", "env": ENV, "instance": INSTANCE}
 
+def labels_site(spider: str, site: Optional[str]) -> dict[str, str]:
+    return {
+        "spider": spider,
+        "site": site or "default",
+        "env": ENV,
+        "instance": INSTANCE,
+    }

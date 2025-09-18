@@ -111,7 +111,9 @@ class MetricsExtension:
         queue_key = getattr(spider, "redis_key", None) or f"{name}:start_urls"
         try:
             llen = self.server.llen(queue_key)
-            QUEUE_LENGTH.labels(name, site or "default", queue_key, ENV, INSTANCE).set(llen)
+            QUEUE_LENGTH.labels(name, site or "default", queue_key, ENV, INSTANCE).set(
+                llen
+            )
             # 若存在 ZSET 刷新队列，则利用 score 作为“下次刷新时间”，估算积压时间
             refresh_key = f"refresh_queue:{site or 'default'}"
             try:
@@ -127,9 +129,8 @@ class MetricsExtension:
             except Exception:
                 # 退化为按队列长度估算
                 backlog = max(0, llen) * 0.1
-            QUEUE_BACKLOG_SECONDS.labels(name, site or "default", queue_key, ENV, INSTANCE).set(
-                backlog
-            )
+            QUEUE_BACKLOG_SECONDS.labels(
+                name, site or "default", queue_key, ENV, INSTANCE
+            ).set(backlog)
         except Exception:
             pass
-

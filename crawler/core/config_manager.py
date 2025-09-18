@@ -118,10 +118,13 @@ class ConfigManager:
             best_match_site_name = None
             longest_match_len = 0
             for config_domain, site_name in self.domain_mapping.items():
-                if domain.endswith(config_domain) and len(config_domain) > longest_match_len:
+                if (
+                    domain.endswith(config_domain)
+                    and len(config_domain) > longest_match_len
+                ):
                     best_match_site_name = site_name
                     longest_match_len = len(config_domain)
-            
+
             if best_match_site_name:
                 return self.configs.get(best_match_site_name)
 
@@ -146,10 +149,13 @@ class ConfigManager:
             best_match_site_name = None
             longest_match_len = 0
             for config_domain, site_name in self.domain_mapping.items():
-                if domain.endswith(config_domain) and len(config_domain) > longest_match_len:
+                if (
+                    domain.endswith(config_domain)
+                    and len(config_domain) > longest_match_len
+                ):
                     best_match_site_name = site_name
                     longest_match_len = len(config_domain)
-            
+
             return best_match_site_name
 
         except Exception as e:

@@ -19,11 +19,7 @@ def run_command(command, check=True, shell=False):
             command = command.split()
 
         result = subprocess.run(
-            command,
-            check=check,
-            capture_output=True,
-            text=True,
-            shell=shell
+            command, check=check, capture_output=True, text=True, shell=shell
         )
 
         if result.stdout:
@@ -95,7 +91,9 @@ def install_dependencies():
 
     # 安装依赖
     if Path("requirements.txt").exists():
-        run_command([str(python_path), "-m", "pip", "install", "-r", "requirements.txt"])
+        run_command(
+            [str(python_path), "-m", "pip", "install", "-r", "requirements.txt"]
+        )
         print("✅ 项目依赖安装完成")
     else:
         print("⚠️ requirements.txt 不存在")

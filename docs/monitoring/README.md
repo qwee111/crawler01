@@ -58,4 +58,3 @@ prometheus --config.file=deployment/monitoring/prometheus.yml \
 - Prometheus 使用持久化存储并开启压缩，保留30天
 - 针对不同环境（dev/staging/prod）区分 label（如 env）
 - 队列积压估计可结合 ZSET 的 score 精确计算
-

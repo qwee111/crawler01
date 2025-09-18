@@ -13,10 +13,26 @@ import hashlib
 import json
 import logging
 
+import requests  # 用于AI Pipeline的API调用
+from aliyunsdkalinlp.request.v20200629.GetTcChGeneralRequest import (
+    GetTcChGeneralRequest,
+)
 from itemadapter import ItemAdapter
 from scrapy.exceptions import DropItem
 
 logger = logging.getLogger(__name__)
+
+# 导入阿里云SDK相关模块
+try:
+    from aliyunsdkcore.client import AcsClient
+    from aliyunsdkcore.request import CommonRequest
+
+    ALIYUN_SDK_AVAILABLE = True
+except ImportError:
+    logger.warning(
+        "⚠️ 阿里云SDK未安装，AIPipeline将无法使用阿里云API。请运行: pip install aliyun-python-sdk-core aliyun-python-sdk-alinlp"
+    )
+    ALIYUN_SDK_AVAILABLE = False
 
 
 class ValidationPipeline:
@@ -126,6 +142,132 @@ class DuplicatesPipeline:
 
         fingerprint_string = "|".join(fingerprint_data)
         return hashlib.md5(fingerprint_string.encode()).hexdigest()
+
+
+class AIPipeline:
+    """
+    AI判断管道，用于识别文章标题是否与传染病疫情相关。
+    使用阿里云文本分类API作为示例。
+    """
+
+    def __init__(self):
+        if not ALIYUN_SDK_AVAILABLE:
+            self.client = None
+            logger.error("阿里云SDK不可用，AIPipeline将跳过初始化。")
+            return
+
+        # 阿里云API配置，请替换为您的实际信息
+        self.access_key_id = ""  # 您的AccessKey ID
+        self.access_key_secret = ""  # 您的AccessKey Secret
+        self.region_id = "cn-hangzhou"  # API服务地域，例如 cn-hangzhou
+        self.endpoint = "nlp.cn-hangzhou.aliyuncs.com"  # API服务Endpoint
+
+        # 文本分类模型名称，请根据您的实际模型名称修改
+        # 如果使用预训练模型，例如通用文本分类，可能不需要modelName参数或使用特定值
+        # 如果是自定义模型，这里填写您的自定义模型名称
+        # self.model_name = "general_text_classification" # 假设使用通用文本分类模型，或替换为您的自定义模型名称
+
+        try:
+            self.client = AcsClient(
+                self.access_key_id, self.access_key_secret, self.region_id
+            )
+            logger.info("阿里云AcsClient初始化成功。")
+        except Exception as e:
+            self.client = None
+            logger.error(f"阿里云AcsClient初始化失败: {e}")
+
+    def process_item(self, item, spider):
+        """
+        处理数据项，通过AI判断标题相关性。
+        """
+        adapter = ItemAdapter(item)
+        title = adapter.get("title")
+
+        if not title:
+            logger.debug("Item缺少标题，跳过AI判断。")
+            return item
+
+        if not self.client:
+            logger.warning("阿里云AcsClient未初始化成功，AI判断功能将跳过。")
+            return item
+
+        try:
+            # request = CommonRequest()
+            # request.set_domain(self.endpoint)
+            # request.set_version('2018-04-08') # API版本
+            # request.set_action_name('RunPreTrainService') # 文本分类的Action名称
+
+            # # 设置请求参数
+            # service_parameters = {
+            #     "text": title,
+            #     "serviceCode": "text_classify", # 文本分类服务代码
+            #     # "modelName": self.model_name # 模型名称
+            # }
+            # request.add_query_param('ServiceParameters', json.dumps(service_parameters))
+            # request.set_method('POST')
+            # request.set_protocol_type('https') # https协议
+
+            request = GetTcChGeneralRequest()
+            request.set_ServiceCode("alinlp")
+            request.set_Text(title)
+            response_str = self.client.do_action_with_exception(request)
+            result = json.loads(response_str)
+            logger.debug(f"阿里云文本分类API返回结果: {result}")
+
+            is_relevant = self._parse_ai_result(result, title)
+
+            if is_relevant:
+                logger.info(f"AI判断标题 '{title}' 与疫情相关，进行保存。")
+                adapter["ai_relevant"] = True
+                return item
+            else:
+                logger.info(f"AI判断标题 '{title}' 与疫情不相关，进行丢弃。")
+                adapter["ai_relevant"] = False
+                raise DropItem(f"AI判断标题不相关: {title}")
+        except DropItem:
+            raise
+        except Exception as e:
+            logger.error(f"AI判断失败或API调用错误: {e}，标题: {title}")
+            adapter["ai_relevant"] = "error"
+            return item
+
+    def _parse_ai_result(self, result, title):
+        """
+        解析阿里云文本分类API的返回结果。
+        假设API返回的格式包含 'Data' 字段，其中有 'labels' 和 'scores'。
+        """
+        if result and "Data" in result:
+            data = json.loads(result["Data"])  # Data字段本身是JSON字符串
+            results = data.get("result", {})
+            labelName = results.get("labelName", "")
+            return labelName == "健康"
+            # 假设我们关注的标签是“疫情相关”，并且其得分高于某个阈值
+            # 您需要根据您的模型训练结果和业务需求调整这里的判断逻辑和阈值
+            # 例如，如果您的模型训练了“疫情相关”和“非疫情相关”两个标签
+
+            # 查找“疫情相关”标签的索引
+            # try:
+            #     epidemic_label_index = labelName.index("疫情相关") # 假设您的模型输出的标签之一是“疫情相关”
+            #     epidemic_score = success[epidemic_label_index]
+            #     if
+            #         return True
+            #     else:
+            #         logger.debug(f"AI判断结果未达到阈值: 标签='疫情相关', 得分={epidemic_score}, 标题={title}")
+            #         return False
+            # except ValueError:
+            #     logger.debug(f"AI判断结果中未找到'疫情相关'标签，标题={title}")
+            #     return False # 未找到相关标签，默认不相关
+            # except IndexError:
+            #     logger.error(f"AI判断结果中标签和得分列表长度不匹配: labels={labelName}, scores={success}, 标题={title}")
+            #     return False # 列表长度不匹配，默认不相关
+        elif "Code" in result and result["Code"] != "200":
+            logger.error(
+                f"阿里云API返回错误: Code={result.get('Code')}, Message={result.get('Message', '未知错误')}"
+            )
+            return False
+        else:
+            logger.warning(f"无法解析AI判断结果或结果为空: {result}, 标题: {title}")
+            return False
 
 
 class ContentUpdatePipeline:
@@ -250,7 +392,9 @@ class MongoPipeline:
             self.db = self.client[self.mongo_db]
             logger.info("MongoDB连接成功")
             try:
-                from crawler.monitoring.db_instrumentation import instrument_mongo_client
+                from crawler.monitoring.db_instrumentation import (
+                    instrument_mongo_client,
+                )
 
                 instrument_mongo_client(self.client, db="mongodb")
             except Exception:

@@ -380,7 +380,9 @@ class TaskMonitor:
             if hour_stats_data:
                 hour_stats = json.loads(hour_stats_data)
                 # 确保 worker_stats 是 defaultdict
-                hour_stats["worker_stats"] = defaultdict(int, hour_stats.get("worker_stats", {}))
+                hour_stats["worker_stats"] = defaultdict(
+                    int, hour_stats.get("worker_stats", {})
+                )
             else:
                 hour_stats = {
                     "hour": current_hour,

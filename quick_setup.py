@@ -14,13 +14,13 @@ from pathlib import Path
 def generate_password(length=16):
     """生成安全密码"""
     alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
-    return ''.join(secrets.choice(alphabet) for _ in range(length))
+    return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
 def generate_secret_key(length=50):
     """生成密钥"""
     alphabet = string.ascii_letters + string.digits + "!@#$%^&*()-_=+[]{}|;:,.<>?"
-    return ''.join(secrets.choice(alphabet) for _ in range(length))
+    return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
 def create_env_file():
@@ -215,23 +215,23 @@ NOTIFICATION_SERVICE_API_KEY=
 """
 
     # 保存到项目根目录
-    with open(env_path, 'w', encoding='utf-8') as f:
+    with open(env_path, "w", encoding="utf-8") as f:
         f.write(env_content)
 
     # 保存到Docker目录
     docker_env_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(docker_env_path, 'w', encoding='utf-8') as f:
+    with open(docker_env_path, "w", encoding="utf-8") as f:
         f.write(env_content)
 
     return {
-        'postgres_password': postgres_password,
-        'mongodb_password': mongodb_password,
-        'redis_password': redis_password,
-        'mongo_express_password': mongo_express_password,
-        'pgadmin_password': pgadmin_password,
-        'minio_password': minio_password,
-        'env_path': env_path,
-        'docker_env_path': docker_env_path
+        "postgres_password": postgres_password,
+        "mongodb_password": mongodb_password,
+        "redis_password": redis_password,
+        "mongo_express_password": mongo_express_password,
+        "pgadmin_password": pgadmin_password,
+        "minio_password": minio_password,
+        "env_path": env_path,
+        "docker_env_path": docker_env_path,
     }
 
 

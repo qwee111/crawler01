@@ -352,6 +352,7 @@ class DataCleaner:
         email_str = str(email).strip().lower()
         email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
         import re
+
         if re.match(email_pattern, email_str):
             return email_str
         return None
@@ -378,6 +379,7 @@ class DataCleaner:
 
         # 2) 在去噪前优先提取“来源：”后紧跟的不含空格内容（如：来源：新华网 作者：… -> 新华网）
         import re
+
         m = re.search(r"(?:新闻来源|来源|发布机构)\s*[:：]\s*([^\s]+)", text, flags=re.IGNORECASE)
         if m:
             return m.group(1)

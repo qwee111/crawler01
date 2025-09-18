@@ -41,15 +41,21 @@ from .metrics import (
 class MonitoringExporter:
     def __init__(self, port: int = 9108, redis_url: Optional[str] = None):
         self._port = port
-        self._redis_url = redis_url or os.getenv("REDIS_URL", "redis://localhost:6379/0")
+        self._redis_url = redis_url or os.getenv(
+            "REDIS_URL", "redis://localhost:6379/0"
+        )
         self._stop = threading.Event()
         self._threads: list[threading.Thread] = []
         self._redis: Optional[redis.Redis] = None
 
     def start(self) -> None:
         start_http_server(self._port)
-        self._threads.append(threading.Thread(target=self._collect_system_loop, daemon=True))
-        self._threads.append(threading.Thread(target=self._collect_redis_loop, daemon=True))
+        self._threads.append(
+            threading.Thread(target=self._collect_system_loop, daemon=True)
+        )
+        self._threads.append(
+            threading.Thread(target=self._collect_redis_loop, daemon=True)
+        )
         for t in self._threads:
             t.start()
 
@@ -67,12 +73,16 @@ class MonitoringExporter:
                 PROC_COUNT.labels(ENV, INSTANCE).set(len(psutil.pids()))
                 THREAD_COUNT.labels(ENV, INSTANCE).set(psutil.Process().num_threads())
                 NET_CONN.labels(ENV, INSTANCE).set(len(psutil.net_connections()))
-                TCP_HANDLES.labels(ENV, INSTANCE).set(sum(1 for c in psutil.net_connections() if c.type))
+                TCP_HANDLES.labels(ENV, INSTANCE).set(
+                    sum(1 for c in psutil.net_connections() if c.type)
+                )
                 # disk
                 for part in psutil.disk_partitions():
                     try:
                         usage = psutil.disk_usage(part.mountpoint)
-                        DISK_USAGE.labels(part.mountpoint, ENV, INSTANCE).set(usage.percent)
+                        DISK_USAGE.labels(part.mountpoint, ENV, INSTANCE).set(
+                            usage.percent
+                        )
                     except Exception:
                         continue
                 # sleep
@@ -100,12 +110,18 @@ class MonitoringExporter:
                     time.sleep(5)
                     continue
                 info = r.info()
-                REDIS_CONNECTED_CLIENTS.labels(ENV, INSTANCE).set(info.get("connected_clients", 0))
-                REDIS_USED_MEMORY_BYTES.labels(ENV, INSTANCE).set(info.get("used_memory", 0))
+                REDIS_CONNECTED_CLIENTS.labels(ENV, INSTANCE).set(
+                    info.get("connected_clients", 0)
+                )
+                REDIS_USED_MEMORY_BYTES.labels(ENV, INSTANCE).set(
+                    info.get("used_memory", 0)
+                )
                 # keyspace
                 for k, v in info.items():
                     if k.startswith("db") and isinstance(v, dict):
-                        REDIS_KEYSPACE_KEYS.labels(k, ENV, INSTANCE).set(v.get("keys", 0))
+                        REDIS_KEYSPACE_KEYS.labels(k, ENV, INSTANCE).set(
+                            v.get("keys", 0)
+                        )
                 # slowlog
                 try:
                     REDIS_SLOWLOG_LEN.labels(ENV, INSTANCE).set(len(r.slowlog_get(32)))

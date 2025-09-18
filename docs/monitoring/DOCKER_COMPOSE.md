@@ -37,4 +37,3 @@ docker compose -f docker-compose.monitoring.yml ps
 ## 常见问题
 - 看不到数据：确认 Exporter 端口与主机名是否正确；Windows/Mac 用 host.docker.internal
 - 指标标签 env/instance：在爬虫运行环境设置 `ENV=prod` `INSTANCE=$(hostname)`
-
