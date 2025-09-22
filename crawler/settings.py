@@ -119,7 +119,7 @@ EXTENSIONS = {
 # Configure item pipelines - 数据处理管道
 ITEM_PIPELINES = {
     # AI判断管道，在数据清洗和去重后，内容更新前执行
-    # "crawler.pipelines.AIPipeline": 200, # 新增：AI判断管道
+    "crawler.pipelines.AIPipeline": 200, # 新增：AI判断管道
     # （可选）增强数据处理管道
     # "data_processing.enhanced_pipelines.EnhancedExtractionPipeline": 200,
     "data_processing.enhanced_pipelines.DataEnrichmentPipeline": 300,
@@ -263,7 +263,7 @@ PROMETHEUS_PORT = int(os.getenv("PROMETHEUS_PORT", 9108))
 METRICS_ENABLED = os.getenv("METRICS_ENABLED", "True").lower() == "true"
 
 # 日志配置
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG")
 # LOG_FILE = os.path.join(BASE_DIR, 'logs', 'scrapy.log')
 
 # 显式设置 pymongo 日志级别
@@ -276,6 +276,22 @@ import logging
 # 安全设置
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")
 API_TOKEN = os.getenv("API_TOKEN", "your-api-token-here")
+
+# ============================================================================
+# AI 模型配置
+# ============================================================================
+# AI 模型提供商: deepseek 或 zhipuai
+AI_MODEL_PROVIDER = os.getenv("AI_MODEL_PROVIDER", "deepseek")
+# DeepSeek 模型名称
+DEEPSEEK_MODEL_NAME = os.getenv("DEEPSEEK_MODEL_NAME", "deepseek-chat")
+# DeepSeek API Key
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "<DeepSeek API Key>")
+# 智谱 AI 模型名称
+ZHIPUAI_MODEL_NAME = os.getenv("ZHIPUAI_MODEL_NAME", "glm-4.5")
+# 智谱 AI API Key
+ZHIPUAI_API_KEY = os.getenv("ZHIPUAI_API_KEY", "<ZhipuAI API Key>")
+# ============================================================================
+
 
 # Custom settings
 RANDOMIZE_DOWNLOAD_DELAY = 0.5

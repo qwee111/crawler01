@@ -12,13 +12,13 @@ from flask import Flask, jsonify, request
 
 from .metrics import (
     CPU_USAGE,
-    MEM_USAGE,
-    REQUEST_TOTAL,
-    REQUEST_ERROR,
+    ITEM_DROPPED,
     ITEM_EXTRACTED,
     ITEM_STORED,
-    ITEM_DROPPED,
+    MEM_USAGE,
     QUEUE_LENGTH,
+    REQUEST_ERROR,
+    REQUEST_TOTAL,
 )
 
 

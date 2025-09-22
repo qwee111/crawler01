@@ -23,9 +23,9 @@ from .metrics import (
     QUEUE_BACKLOG_SECONDS,
     QUEUE_LENGTH,
     REQUEST_ERROR,
-    REQUESTS_IN_FLIGHT,
     REQUEST_LATENCY,
     REQUEST_TOTAL,
+    REQUESTS_IN_FLIGHT,
     labels_site,
 )
 

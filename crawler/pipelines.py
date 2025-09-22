@@ -12,27 +12,14 @@
 import hashlib
 import json
 import logging
+import os # 导入os模块用于获取环境变量
 
-import requests  # 用于AI Pipeline的API调用
-from aliyunsdkalinlp.request.v20200629.GetTcChGeneralRequest import (
-    GetTcChGeneralRequest,
-)
+from openai import OpenAI # 导入OpenAI库
+from zai import ZhipuAiClient # 导入ZhipuAiClient库
 from itemadapter import ItemAdapter
 from scrapy.exceptions import DropItem
 
 logger = logging.getLogger(__name__)
-
-# 导入阿里云SDK相关模块
-try:
-    from aliyunsdkcore.client import AcsClient
-    from aliyunsdkcore.request import CommonRequest
-
-    ALIYUN_SDK_AVAILABLE = True
-except ImportError:
-    logger.warning(
-        "⚠️ 阿里云SDK未安装，AIPipeline将无法使用阿里云API。请运行: pip install aliyun-python-sdk-core aliyun-python-sdk-alinlp"
-    )
-    ALIYUN_SDK_AVAILABLE = False
 
 
 class ValidationPipeline:
@@ -88,7 +75,7 @@ class CleaningPipeline:
 
         # 清洗文本字段
         text_fields = ["title", "content", "region"]
-        for field in text_fields:
+        for field in field_text:
             value = adapter.get(field)
             if value:
                 # 去除多余空白字符
@@ -147,34 +134,48 @@ class DuplicatesPipeline:
 class AIPipeline:
     """
     AI判断管道，用于识别文章标题是否与传染病疫情相关。
-    使用阿里云文本分类API作为示例。
+    支持DeepSeek和智谱AI大模型进行分类。
     """
 
-    def __init__(self):
-        if not ALIYUN_SDK_AVAILABLE:
-            self.client = None
-            logger.error("阿里云SDK不可用，AIPipeline将跳过初始化。")
-            return
+    def __init__(self, settings):
+        self.model_provider = settings.get("AI_MODEL_PROVIDER", "deepseek")
+        self.client = None
+        self.model_name = None
 
-        # 阿里云API配置，请替换为您的实际信息
-        self.access_key_id = ""  # 您的AccessKey ID
-        self.access_key_secret = ""  # 您的AccessKey Secret
-        self.region_id = "cn-hangzhou"  # API服务地域，例如 cn-hangzhou
-        self.endpoint = "nlp.cn-hangzhou.aliyuncs.com"  # API服务Endpoint
+        if self.model_provider == "deepseek":
+            self.deepseek_api_key = settings.get("DEEPSEEK_API_KEY", "<DeepSeek API Key>")
+            self.deepseek_base_url = "https://api.deepseek.com"
+            self.model_name = settings.get("DEEPSEEK_MODEL_NAME", "deepseek-chat")
 
-        # 文本分类模型名称，请根据您的实际模型名称修改
-        # 如果使用预训练模型，例如通用文本分类，可能不需要modelName参数或使用特定值
-        # 如果是自定义模型，这里填写您的自定义模型名称
-        # self.model_name = "general_text_classification" # 假设使用通用文本分类模型，或替换为您的自定义模型名称
+            if not self.deepseek_api_key or self.deepseek_api_key == "<DeepSeek API Key>":
+                logger.error("DeepSeek API Key 未配置或使用默认占位符，AIPipeline将跳过DeepSeek初始化。")
+                return
+            try:
+                self.client = OpenAI(
+                    api_key=self.deepseek_api_key, base_url=self.deepseek_base_url
+                )
+                logger.info("DeepSeek OpenAI客户端初始化成功。")
+            except Exception as e:
+                logger.error(f"DeepSeek OpenAI客户端初始化失败: {e}")
 
-        try:
-            self.client = AcsClient(
-                self.access_key_id, self.access_key_secret, self.region_id
-            )
-            logger.info("阿里云AcsClient初始化成功。")
-        except Exception as e:
-            self.client = None
-            logger.error(f"阿里云AcsClient初始化失败: {e}")
+        elif self.model_provider == "zhipuai":
+            self.zhipuai_api_key = settings.get("ZHIPUAI_API_KEY", "<ZhipuAI API Key>")
+            self.model_name = settings.get("ZHIPUAI_MODEL_NAME", "glm-4.5")
+
+            if not self.zhipuai_api_key or self.zhipuai_api_key == "<ZhipuAI API Key>":
+                logger.error("ZhipuAI API Key 未配置或使用默认占位符，AIPipeline将跳过ZhipuAI初始化。")
+                return
+            try:
+                self.client = ZhipuAiClient(api_key=self.zhipuai_api_key)
+                logger.info("ZhipuAI客户端初始化成功。")
+            except Exception as e:
+                logger.error(f"ZhipuAI客户端初始化失败: {e}")
+        else:
+            logger.error(f"不支持的AI模型提供商: {self.model_provider}。AIPipeline将跳过初始化。")
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(crawler.settings)
 
     def process_item(self, item, spider):
         """
@@ -188,33 +189,40 @@ class AIPipeline:
             return item
 
         if not self.client:
-            logger.warning("阿里云AcsClient未初始化成功，AI判断功能将跳过。")
+            logger.warning(f"{self.model_provider}客户端未初始化成功，AI判断功能将跳过。")
             return item
 
         try:
-            # request = CommonRequest()
-            # request.set_domain(self.endpoint)
-            # request.set_version('2018-04-08') # API版本
-            # request.set_action_name('RunPreTrainService') # 文本分类的Action名称
+            system_content = (
+                "你是一个有用的助手，专门根据提供的标准对文章标题进行分类。请只回答“相关”或“不相关”。"
+                "如果标题与以下任何主题相关，则回答“相关”：疫情、传染病的动向、各地疫情流行/爆发情况、官方统计表、当季流行性病毒、传染病研究新动向、传染病重要会议和政策。"
+                "否则，回答“不相关”。"
+            )
+            user_content = f"请判断以下标题是否相关：'{title}'"
 
-            # # 设置请求参数
-            # service_parameters = {
-            #     "text": title,
-            #     "serviceCode": "text_classify", # 文本分类服务代码
-            #     # "modelName": self.model_name # 模型名称
-            # }
-            # request.add_query_param('ServiceParameters', json.dumps(service_parameters))
-            # request.set_method('POST')
-            # request.set_protocol_type('https') # https协议
+            messages = [
+                {"role": "system", "content": system_content},
+                {"role": "user", "content": user_content},
+            ]
 
-            request = GetTcChGeneralRequest()
-            request.set_ServiceCode("alinlp")
-            request.set_Text(title)
-            response_str = self.client.do_action_with_exception(request)
-            result = json.loads(response_str)
-            logger.debug(f"阿里云文本分类API返回结果: {result}")
+            if self.model_provider == "deepseek":
+                response = self.client.chat.completions.create(
+                    model=self.model_name, messages=messages, stream=False, temperature=0.0
+                )
+                ai_response_content = response.choices[0].message.content.strip()
+            elif self.model_provider == "zhipuai":
+                response = self.client.chat.completions.create(
+                    model=self.model_name, messages=messages, stream=False, temperature=0.0
+                )
+                ai_response_content = response.choices[0].message.content.strip()
+            else:
+                logger.error(f"不支持的AI模型提供商: {self.model_provider}。无法进行AI判断。")
+                adapter["ai_relevant"] = "error"
+                return item
 
-            is_relevant = self._parse_ai_result(result, title)
+            logger.info(f"{self.model_provider} AI对标题 '{title}' 的响应: '{ai_response_content}'")
+
+            is_relevant = (ai_response_content == "相关")
 
             if is_relevant:
                 logger.info(f"AI判断标题 '{title}' 与疫情相关，进行保存。")
@@ -227,47 +235,9 @@ class AIPipeline:
         except DropItem:
             raise
         except Exception as e:
-            logger.error(f"AI判断失败或API调用错误: {e}，标题: {title}")
+            logger.error(f"{self.model_provider} AI判断失败或API调用错误: {e}，标题: {title}")
             adapter["ai_relevant"] = "error"
             return item
-
-    def _parse_ai_result(self, result, title):
-        """
-        解析阿里云文本分类API的返回结果。
-        假设API返回的格式包含 'Data' 字段，其中有 'labels' 和 'scores'。
-        """
-        if result and "Data" in result:
-            data = json.loads(result["Data"])  # Data字段本身是JSON字符串
-            results = data.get("result", {})
-            labelName = results.get("labelName", "")
-            return labelName == "健康"
-            # 假设我们关注的标签是“疫情相关”，并且其得分高于某个阈值
-            # 您需要根据您的模型训练结果和业务需求调整这里的判断逻辑和阈值
-            # 例如，如果您的模型训练了“疫情相关”和“非疫情相关”两个标签
-
-            # 查找“疫情相关”标签的索引
-            # try:
-            #     epidemic_label_index = labelName.index("疫情相关") # 假设您的模型输出的标签之一是“疫情相关”
-            #     epidemic_score = success[epidemic_label_index]
-            #     if
-            #         return True
-            #     else:
-            #         logger.debug(f"AI判断结果未达到阈值: 标签='疫情相关', 得分={epidemic_score}, 标题={title}")
-            #         return False
-            # except ValueError:
-            #     logger.debug(f"AI判断结果中未找到'疫情相关'标签，标题={title}")
-            #     return False # 未找到相关标签，默认不相关
-            # except IndexError:
-            #     logger.error(f"AI判断结果中标签和得分列表长度不匹配: labels={labelName}, scores={success}, 标题={title}")
-            #     return False # 列表长度不匹配，默认不相关
-        elif "Code" in result and result["Code"] != "200":
-            logger.error(
-                f"阿里云API返回错误: Code={result.get('Code')}, Message={result.get('Message', '未知错误')}"
-            )
-            return False
-        else:
-            logger.warning(f"无法解析AI判断结果或结果为空: {result}, 标题: {title}")
-            return False
 
 
 class ContentUpdatePipeline:
@@ -488,8 +458,6 @@ class PostgresPipeline:
             "database": crawler.settings.get("POSTGRES_DATABASE"),
             "user": crawler.settings.get("POSTGRES_USER"),
             "password": crawler.settings.get("POSTGRES_PASSWORD"),
-            "client_encoding": "utf8",  # 添加编码设置
-            "connect_timeout": 10,  # 添加连接超时
         }
 
         # 调试信息：显示最终的连接配置
