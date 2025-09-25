@@ -1,18 +1,17 @@
-# 浙江省疾病预防控制中心网站配置
+# 广西壮族自治区疾病预防控制中心网站配置
 site_info:
-  name: "浙江省疾病预防控制中心"
-  base_url: "http://www.cdc.zj.cn"
-  description: "浙江省疾病预防控制中心数据爬取"
+  name: "广西壮族自治区疾病预防控制中心"
+  base_url: "https://www.gxcdc.org.cn/"
+  description: "广西壮族自治区疾病预防控制中心数据爬取"
   domains:
-    - "cdc.zj.cn"
-    - "www.cdc.zj.cn"
+    - "www.gxcdc.org.cn"
   encoding: "utf-8"
   language: "zh-CN"
 
 # 目标页面配置
 start_urls:
-  - url: "https://www.cdc.zj.cn/yqxx/"
-    name: "浙江省法定传染病疫情报告"
+  - url: "https://www.gxcdc.org.cn/html/jkfw/tjxx/"
+    name: "疫情信息"
     type: "list_page"
 
 # 页面类型检测配置
@@ -72,57 +71,62 @@ extraction:
     fields:
       page_title:
         method: css
-        selector: ".list_title"
-        attr: text
+        selector: ".bigger"
+        type: string
         required: true
 
     list_items:
-      container: ".list_item"
+      container: ".newt_dlifl3"
       max_items: 50
       fields:
         title:
           method: css
-          selector: "a .title.clamp2"
-          attr: title
+          selector: "a.newt_dtit"
+          type: string
         url:
           method: css
-          selector: "a"
+          selector: "a.newt_dtit"
           attr: href
-        click_selector:
+        summary:
           method: css
-          selector: "a"
-        date:
+          selector: "a.newt_dtis"
+          type: string
+        publish_date:
           method: css
-          selector: ".time"
-          attr: date
+          selector: "p.newt_dtime span.newt_ytime"
+          type: date
+        source:
+          method: css
+          selector: "p.newt_dtime span.newt_form"
+          type: string
 
   # 详情页特定配置
   detail_page:
     fields:
       title:
         method: css
-        selector: ".top_main .title"
-        attr: text
+        selector: ".content-title"
+        type: string
         required: true
       content:
         method: css
-        selector: ".trs_web p"
-        attr: text
+        selector: ".has-right p"
+        type: string
         multiple: true
         required: true
       source:
         method: css
-        selector: ".subheading"
+        selector: ".news-info"
         type: string
         required: false
       publish_date:
         method: css
-        selector: ".subheading"
+        selector: ".news-info"
         type: date
         required: false
       image_urls:
         method: css
-        selector: ".xiahua img::attr(src)"
+        selector: "#content img::attr(src)"
         type: url
         multiple: true
       file_urls:
@@ -139,9 +143,9 @@ request:
     Accept-Language: "zh-CN,zh;q=0.9,en;q=0.8"
 
   delays:
-    download_delay: 2.0
+    download_delay: 0.5
     randomize_delay: true
-    random_range: [1.0, 3.0]
+    random_range: [0.5, 2.0]
 
   retry:
     retry_times: 3
@@ -204,7 +208,7 @@ update_detection:
   list_refresh_interval: 900
 
 storage:
-  collection_name: "zjcdc_data"
+  collection_name: "gxcdc_data"
   indexes:
     - field: "publish_date"
       order: -1

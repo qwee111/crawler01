@@ -198,8 +198,14 @@ class ExtractionEngine:
             return cleaned if cleaned else None
         else:
             if isinstance(values, str):
-                # 移除所有空白字符（包括 \r, \n, \t, \xa0）并替换为单个空格，然后去除首尾空白
-                cleaned = re.sub(r"\s+", " ", values).strip()
+                # 对于日期字段，进行特殊处理
+                if field_type == "date" or "date" in field_type:
+                    # 移除多余的空格并规范化日期格式
+                    cleaned = re.sub(r"\s*-\s*", "-", values).strip()
+                else:
+                    # 移除所有空白字符（包括 \r, \n, \t, \xa0）并替换为单个空格，然后去除首尾空白
+                    cleaned = re.sub(r"\s+", " ", values).strip()
+                
                 if cleaned:
                     return self._convert_type(cleaned, field_type)
             return values
@@ -276,6 +282,12 @@ class ExtractionEngine:
                     except Exception as e:
                         logger.error(f"❌ 提取列表项字段 {field_name} 失败: {e}")
 
+                # 后处理：清理日期字段格式
+                if "date" in item_data and isinstance(item_data["date"], str):
+                    # 清理日期格式，移除多余空格
+                    cleaned_date = re.sub(r'\s*-\s*', '-', item_data["date"])
+                    item_data["date"] = cleaned_date.strip()
+
                 if len(item_data) > 1:  # 除了index还有其他字段
                     items.append(item_data)
 
@@ -295,6 +307,8 @@ class ExtractionEngine:
         if not selector:
             return None
 
+        logger.debug(f"提取字段 - 方法: {method}, 选择器: {selector}, 属性: {attr}")
+
         try:
             raw_value = None
             if method == "css":
@@ -303,17 +317,39 @@ class ExtractionEngine:
                 else:
                     raw_value = element.css(f"{selector}::attr({attr})").get()
             elif method == "xpath":
-                if attr == "text":
+                # 检查是否是函数表达式（如concat, substring等）
+                function_prefixes = ("concat", "substring", "string", "normalize-space")
+                if selector.strip().startswith(function_prefixes):
+                    # 对于函数表达式，直接使用表达式，不添加额外的/text()或/@attr
+                    logger.debug(f"使用XPath函数表达式: {selector}")
+                    try:
+                        raw_value = element.xpath(selector).get()
+                        logger.debug(f"XPath函数表达式结果: {raw_value}")
+                    except Exception as func_e:
+                        logger.error(f"XPath函数表达式执行失败: {selector}, 错误: {func_e}")
+                        # 尝试另一种方式提取
+                        raw_value = "-"
+                # 检查是否已经直接指定了属性（包含@符号）
+                elif "@" in selector:
+                    raw_value = element.xpath(selector).get()
+                elif attr == "text":
                     raw_value = element.xpath(f"{selector}/text()").get()
                 else:
                     raw_value = element.xpath(f"{selector}/@{attr}").get()
             else:
+                logger.warning(f"不支持的提取方法: {method}")
                 return None
+
+            logger.debug(f"原始提取值: {raw_value}")
 
             # 对提取到的值进行清洗
             if raw_value is not None:
                 # 假设列表项中的字段类型默认为 'string'
-                return self._clean_and_convert(raw_value, "string", False)
+                result = self._clean_and_convert(raw_value, "string", False)
+                logger.debug(f"字段提取结果: {result}")
+                return result
+            else:
+                logger.debug("未提取到值")
             return None
 
         except Exception as e:

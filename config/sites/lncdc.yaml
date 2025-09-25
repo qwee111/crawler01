@@ -1,18 +1,17 @@
-# 浙江省疾病预防控制中心网站配置
+# 辽宁省疾病预防控制中心网站配置
 site_info:
-  name: "浙江省疾病预防控制中心"
-  base_url: "http://www.cdc.zj.cn"
-  description: "浙江省疾病预防控制中心数据爬取"
+  name: "辽宁省疾病预防控制中心"
+  base_url: "http://www.lncdc.com/"
+  description: "辽宁省疾病预防控制中心数据爬取"
   domains:
-    - "cdc.zj.cn"
-    - "www.cdc.zj.cn"
+    - "www.lncdc.com"
   encoding: "utf-8"
   language: "zh-CN"
 
 # 目标页面配置
 start_urls:
-  - url: "https://www.cdc.zj.cn/yqxx/"
-    name: "浙江省法定传染病疫情报告"
+  - url: "https://www.lncdc.com/lncdc/secondanylevel.html?group=%E5%8A%A8%E6%80%81%E4%BF%A1%E6%81%AF&cur=%E4%BC%A0%E6%9F%93%E7%97%85%E4%BF%A1%E6%81%AF&curtype=xwdt2&groupall=%E4%B8%AD%E5%BF%83%E5%8A%A8%E6%80%81%2C%E8%A1%8C%E4%B8%9A%E5%8A%A8%E6%80%81%2C%E5%9F%BA%E5%B1%82%E5%8A%A8%E6%80%81%2C%E4%BC%A0%E6%9F%93%E7%97%85%E4%BF%A1%E6%81%AF%2C%E7%AA%81%E5%8F%91%E4%BA%8B%E4%BB%B6%E5%93%8D%E5%BA%94"
+    name: "传染病信息"
     type: "list_page"
 
 # 页面类型检测配置
@@ -72,18 +71,18 @@ extraction:
     fields:
       page_title:
         method: css
-        selector: ".list_title"
+        selector: "#curtitle"
         attr: text
         required: true
 
     list_items:
-      container: ".list_item"
+      container: ".bd li"
       max_items: 50
       fields:
         title:
           method: css
-          selector: "a .title.clamp2"
-          attr: title
+          selector: ".line-ellipsis"
+          attr: text
         url:
           method: css
           selector: "a"
@@ -94,35 +93,35 @@ extraction:
         date:
           method: css
           selector: ".time"
-          attr: date
+          attr: text
 
   # 详情页特定配置
   detail_page:
     fields:
       title:
         method: css
-        selector: ".top_main .title"
+        selector: ".view1-box-title .title"
         attr: text
         required: true
       content:
         method: css
-        selector: ".trs_web p"
+        selector: ".view1-box-main-content p"
         attr: text
         multiple: true
         required: true
       source:
         method: css
-        selector: ".subheading"
+        selector: ".clearfix"
         type: string
         required: false
       publish_date:
         method: css
-        selector: ".subheading"
+        selector: "body > div.page > div > div > div.main > div:nth-child(4) > div > div > div > div > div:nth-child(1) > div > div.info-left.fl > div:nth-child(1) > p:nth-child(2)"
         type: date
         required: false
       image_urls:
         method: css
-        selector: ".xiahua img::attr(src)"
+        selector: ".view1-box-main-content img::attr(src)"
         type: url
         multiple: true
       file_urls:
@@ -139,14 +138,14 @@ request:
     Accept-Language: "zh-CN,zh;q=0.9,en;q=0.8"
 
   delays:
-    download_delay: 2.0
+    download_delay: 0.5
     randomize_delay: true
-    random_range: [1.0, 3.0]
+    random_range: [0.5, 2.0]
 
   retry:
     retry_times: 3
     retry_delay: 5.0
-
+  
   # Selenium 配置
   selenium:
     enabled: true # 为该站点启用 Selenium
@@ -204,7 +203,7 @@ update_detection:
   list_refresh_interval: 900
 
 storage:
-  collection_name: "zjcdc_data"
+  collection_name: "lncdc_data"
   indexes:
     - field: "publish_date"
       order: -1

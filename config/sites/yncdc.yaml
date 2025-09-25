@@ -1,18 +1,17 @@
-# 浙江省疾病预防控制中心网站配置
+# 云南省疾病预防控制中心网站配置
 site_info:
-  name: "浙江省疾病预防控制中心"
-  base_url: "http://www.cdc.zj.cn"
-  description: "浙江省疾病预防控制中心数据爬取"
+  name: "云南省疾病预防控制中心"
+  base_url: "https://www.yncdc.cn/"
+  description: "云南省疾病预防控制中心数据爬取"
   domains:
-    - "cdc.zj.cn"
-    - "www.cdc.zj.cn"
+    - "www.yncdc.cn"
   encoding: "utf-8"
   language: "zh-CN"
 
 # 目标页面配置
 start_urls:
-  - url: "https://www.cdc.zj.cn/yqxx/"
-    name: "浙江省法定传染病疫情报告"
+  - url: "https://www.yncdc.cn/jkzt/jkts/crb/index.shtml"
+    name: "云南省法定传染病疫情报告"
     type: "list_page"
 
 # 页面类型检测配置
@@ -27,9 +26,9 @@ detection:
         keywords: ["要闻", "动态", "新闻"]
       structure_features:
         required_selectors:
-          - "//*[contains(@class, 'content_list')]//li"
+          - '//div[contains(@class, "article__list-nobg")]'
         min_elements:
-          "//*[contains(@class, 'content_list')]//li//a": 3
+          '//div[contains(@class, "article__list-nobg")]//div[@class="article__title"]/span': 3
 
     detail_page:
       url_patterns:
@@ -39,7 +38,7 @@ detection:
         min_content_length: 500
       structure_features:
         required_selectors:
-          - "//*[contains(@class, 'article')]//div[contains(@class, 'article_detail_con')]//p"
+          - '//*[contains(@class, "article")]//div[contains(@class, "article_detail_con")]//p'
 
 # 数据提取配置
 extraction:
@@ -47,14 +46,14 @@ extraction:
   fields:
     title:
       method: xpath
-      selector: "//title/text() | //p[@class='content_rt_top']/text() | //h1/text()"
+      selector: '//title/text() | //p[@class="content_rt_top"]/text() | //h1/text()'
       type: string
       required: true
       description: "页面标题"
 
     content:
       method: xpath
-      selector: "//div[@class='article_detail_con']//p/text() | //div[@class='content']//p/text()"
+      selector: '//div[@class="article_detail_con"]//p/text() | //div[@class="content"]//p/text()'
       type: string
       multiple: true
       required: false
@@ -62,7 +61,7 @@ extraction:
 
     publish_date:
       method: xpath
-      selector: "//span[@class='time']/text() | //div[@class='date']/text() | //*[contains(@class,'date')]/text()"
+      selector: '//span[@class="time"]/text() | //div[@class="date"]/text() | //*[contains(@class,"date")]/text()'
       type: date
       required: false
       description: "发布时间"
@@ -72,62 +71,58 @@ extraction:
     fields:
       page_title:
         method: css
-        selector: ".list_title"
-        attr: text
+        selector: ".mbox__head"
+        type: string
         required: true
 
     list_items:
-      container: ".list_item"
+      container: ".article__list-nobg"
       max_items: 50
+      follow: true
       fields:
         title:
           method: css
-          selector: "a .title.clamp2"
-          attr: title
+          selector: ".article__title span"
+          type: string
         url:
-          method: css
-          selector: "a"
-          attr: href
-        click_selector:
-          method: css
-          selector: "a"
+          method: xpath
+          selector: "./@data-link"
+          type: url
         date:
-          method: css
-          selector: ".time"
-          attr: date
+          method: xpath
+          selector: "concat(.//span[@class='article__year']/text(), '-', .//span[@class='article__day']/text())"
+          type: string
 
   # 详情页特定配置
   detail_page:
     fields:
       title:
         method: css
-        selector: ".top_main .title"
-        attr: text
+        selector: ".article__title"
         required: true
       content:
         method: css
-        selector: ".trs_web p"
-        attr: text
+        selector: "p"
         multiple: true
         required: true
       source:
         method: css
-        selector: ".subheading"
+        selector: ".article__other"
         type: string
         required: false
       publish_date:
         method: css
-        selector: ".subheading"
+        selector: ".article__other"
         type: date
         required: false
       image_urls:
         method: css
-        selector: ".xiahua img::attr(src)"
+        selector: '.xiahua img::attr(src)'
         type: url
         multiple: true
       file_urls:
         method: css
-        selector: "a[href$='.pdf']::attr(href), a[href*='.pdf']::attr(href)"
+        selector: 'a[href$=".pdf"]::attr(href), a[href*=".pdf"]::attr(href)'
         type: url
         multiple: true
 
@@ -139,13 +134,13 @@ request:
     Accept-Language: "zh-CN,zh;q=0.9,en;q=0.8"
 
   delays:
-    download_delay: 2.0
+    download_delay: 0.5
     randomize_delay: true
-    random_range: [1.0, 3.0]
+    random_range: [0.5, 1.0]
 
   retry:
-    retry_times: 3
-    retry_delay: 5.0
+    retry_times: 2
+    retry_delay: 1.0
 
   # Selenium 配置
   selenium:
@@ -161,6 +156,11 @@ request:
       delays:
         page_load_wait: 3 # 页面加载后额外等待时间
         after_click: 0.5 # 点击后额外等待时间
+    # anti_detection: # 可选：反检测配置
+    #   user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    #   disable_images: false
+    #   disable_javascript: false
+    #   disable_automation_flags: false # 仅 Firefox
 
 # 数据清洗配置
 cleaning:
@@ -204,7 +204,7 @@ update_detection:
   list_refresh_interval: 900
 
 storage:
-  collection_name: "zjcdc_data"
+  collection_name: "yncdc_data"
   indexes:
     - field: "publish_date"
       order: -1

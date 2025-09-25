@@ -1,18 +1,22 @@
-# 浙江省疾病预防控制中心网站配置
+# 甘肃省疾病预防控制中心网站配置
 site_info:
-  name: "浙江省疾病预防控制中心"
-  base_url: "http://www.cdc.zj.cn"
-  description: "浙江省疾病预防控制中心数据爬取"
+  name: "甘肃省疾病预防控制中心"
+  base_url: "http://www.gscdc.cn/index.html"
+  description: "甘肃省疾病预防控制中心数据爬取"
   domains:
-    - "cdc.zj.cn"
-    - "www.cdc.zj.cn"
+    - "gscdc.cn"
+    - "www.gscdc.cn"
+    - "wsjk.gansu.gov.cn"
   encoding: "utf-8"
   language: "zh-CN"
 
 # 目标页面配置
 start_urls:
-  - url: "https://www.cdc.zj.cn/yqxx/"
-    name: "浙江省法定传染病疫情报告"
+  - url: "http://www.gscdc.cn/html/news/yiqingtongbao/news-list-yiqingtongbao.html"
+    name: "传染病信息"
+    type: "list_page"
+  - url: "http://www.gscdc.cn/html/news/tufashijian/news-list-tufashijian.html"
+    name: "突发事件"
     type: "list_page"
 
 # 页面类型检测配置
@@ -72,57 +76,54 @@ extraction:
     fields:
       page_title:
         method: css
-        selector: ".list_title"
+        selector: ".font-green , #sideMenuBox h3"
         attr: text
         required: true
 
     list_items:
-      container: ".list_item"
+      container: ".infoList li"
       max_items: 50
       fields:
         title:
           method: css
-          selector: "a .title.clamp2"
+          selector: "a"
           attr: title
         url:
           method: css
           selector: "a"
           attr: href
-        click_selector:
-          method: css
-          selector: "a"
         date:
           method: css
-          selector: ".time"
-          attr: date
+          selector: "span"
+          attr: text
 
   # 详情页特定配置
   detail_page:
     fields:
       title:
         method: css
-        selector: ".top_main .title"
+        selector: "h1"
         attr: text
         required: true
       content:
         method: css
-        selector: ".trs_web p"
+        selector: "#con p"
         attr: text
         multiple: true
         required: true
       source:
         method: css
-        selector: ".subheading"
+        selector: ".author"
         type: string
         required: false
       publish_date:
         method: css
-        selector: ".subheading"
+        selector: ".author"
         type: date
         required: false
       image_urls:
         method: css
-        selector: ".xiahua img::attr(src)"
+        selector: "#con img::attr(src)"
         type: url
         multiple: true
       file_urls:
@@ -139,28 +140,13 @@ request:
     Accept-Language: "zh-CN,zh;q=0.9,en;q=0.8"
 
   delays:
-    download_delay: 2.0
+    download_delay: 0.5
     randomize_delay: true
-    random_range: [1.0, 3.0]
+    random_range: [0.5, 2.0]
 
   retry:
     retry_times: 3
     retry_delay: 5.0
-
-  # Selenium 配置
-  selenium:
-    enabled: true # 为该站点启用 Selenium
-    browser_type: "chrome" # 使用 Chrome 浏览器，也可以是 "firefox"
-    headless: false # 以无头模式运行浏览器
-    wait_time: 5 # 页面加载或元素出现的最大等待时间（秒），用于 SeleniumRequest 辅助类
-    timeouts:
-      implicit_wait: 3 # 隐式等待时间
-      explicit_wait: 5 # 显式等待时间
-      page_load: 5 # 页面加载超时时间
-    crawling_strategy:
-      delays:
-        page_load_wait: 3 # 页面加载后额外等待时间
-        after_click: 0.5 # 点击后额外等待时间
 
 # 数据清洗配置
 cleaning:
@@ -204,7 +190,7 @@ update_detection:
   list_refresh_interval: 900
 
 storage:
-  collection_name: "zjcdc_data"
+  collection_name: "gscdc_data"
   indexes:
     - field: "publish_date"
       order: -1
