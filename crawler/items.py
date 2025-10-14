@@ -246,3 +246,26 @@ class StatisticsItem(scrapy.Item):
     # 元数据
     crawl_time = scrapy.Field(output_processor=TakeFirst())
     spider_name = scrapy.Field(output_processor=TakeFirst())
+
+
+class BochaaiItem(scrapy.Item):
+    """Bochaai API数据项"""
+
+    url = scrapy.Field(output_processor=TakeFirst())
+    title = scrapy.Field(
+        input_processor=MapCompose(clean_text), output_processor=TakeFirst()
+    )
+    content = scrapy.Field(
+        input_processor=MapCompose(clean_text),
+        output_processor=Compose(lambda x: " ".join(x) if x else ""),
+    )
+    publish_date = scrapy.Field(
+        input_processor=MapCompose(parse_date), output_processor=TakeFirst()
+    )
+    source = scrapy.Field(
+        input_processor=MapCompose(clean_text), output_processor=TakeFirst()
+    )
+    spider_name = scrapy.Field(output_processor=TakeFirst())
+    crawl_time = scrapy.Field(output_processor=TakeFirst())
+    # 由 AI 判断是否与疫情相关
+    ai_relevant = scrapy.Field(output_processor=TakeFirst())

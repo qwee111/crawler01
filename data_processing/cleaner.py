@@ -296,7 +296,24 @@ class DataCleaner:
                     else:
                         return None
                 else:
-                    parsed_date = date_parser.parse(date_str)
+                    try:
+                        parsed_date = date_parser.parse(date_str)
+                    except Exception:
+                        # 回退：当复杂时间串解析失败时，提取首个 YYYY-MM-DD 作为日期
+                        m = re.search(r"(\d{4})-(\d{1,2})-(\d{1,2})", date_str)
+                        if m:
+                            year, month, day = m.groups()
+                            parsed_date = datetime(int(year), int(month), int(day))
+                        else:
+                            # 进一步尝试常见的其他分隔符
+                            for pattern in [r"(\d{4})\.(\d{1,2})\.(\d{1,2})", r"(\d{4})/(\d{1,2})/(\d{1,2})"]:
+                                m2 = re.search(pattern, date_str)
+                                if m2:
+                                    year, month, day = m2.groups()
+                                    parsed_date = datetime(int(year), int(month), int(day))
+                                    break
+                            else:
+                                raise
 
             # 格式化输出
             output_format = config.get("format", "%Y-%m-%d")
