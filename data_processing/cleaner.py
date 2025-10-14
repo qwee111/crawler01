@@ -277,7 +277,8 @@ class DataCleaner:
 
                 # 中文日期格式预处理
                 date_str = date_str.replace("年", "-").replace("月", "-").replace("日", "")
-                date_str = re.sub(r"[^\d\-\s:.]", "", date_str)
+                # 保留 ISO8601 关键字符 T/Z/+，避免被清理掉导致解析失败
+                date_str = re.sub(r"[^\d\-\s:.\+TZtz]", "", date_str)
 
                 if not DATEUTIL_AVAILABLE:
                     # 简单的日期解析

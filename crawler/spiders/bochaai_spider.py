@@ -130,12 +130,34 @@ class BochaaiSpider(RedisSpider):
                 return
 
             for page in webpages:
+                # 规范化发布时间为 YYYY-MM-DD（若可解析）
+                raw_dt = page.get("datePublished")
+                pub_date = None
+                try:
+                    if isinstance(raw_dt, str) and raw_dt:
+                        # 优先使用fromisoformat；若含Z则替换为+00:00
+                        dt_str = raw_dt.replace("Z", "+00:00")
+                        try:
+                            from datetime import datetime as _dt
+
+                            parsed = _dt.fromisoformat(dt_str)
+                        except Exception:
+                            # 回退：仅截取前10位 'YYYY-MM-DD'
+                            parsed = None
+                        if parsed:
+                            pub_date = parsed.date().isoformat()
+                        else:
+                            if len(raw_dt) >= 10 and raw_dt[4] in "-/.":
+                                pub_date = raw_dt[:10].replace("/", "-")
+                except Exception:
+                    pub_date = None
+
                 # 按照 adaptive_spider_v2 的风格，直接产出 dict，便于 MongoDB 管道入库
                 yield {
                     "url": page.get("url"),
                     "title": page.get("name") if page.get("name") else page.get("snippet"),
                     "content": page.get("summary"),
-                    "publish_date": page.get("datePublished"),
+                    "publish_date": pub_date or raw_dt,
                     "source": page.get("siteName"),
                     "spider_name": self.name,
                     "crawl_time": datetime.now().isoformat(),
