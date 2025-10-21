@@ -52,6 +52,11 @@ dependencies = [
     "scrapy-selenium>=0.0.7",
     "openai>=1.108.1",
     "mongomock>=4.3.0",
+    "pandas>=2.3.3",
+    "weasyprint>=66.0",
+    "markdown>=3.9",
+    "pdfkit>=1.0.0",
+    "reportlab>=4.4.4",
 ]
 
 # 包发现配置

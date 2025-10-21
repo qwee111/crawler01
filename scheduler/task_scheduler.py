@@ -402,6 +402,41 @@ class DistributedTaskScheduler:
 
         return None
 
+    def submit_ai_report_task(self, site_name: str, days_ago: int = 7, priority: TaskPriority = TaskPriority.NORMAL) -> bool:
+        """
+        提交AI报告生成任务到队列。
+        """
+        if not self.redis:
+            logger.error("Redis未连接")
+            return False
+
+        # AI报告生成任务的spider_name固定为 'ai_report_generator'
+        # url 使用 site_name 作为唯一标识
+        task = CrawlTask(
+            spider_name="ai_report_generator",
+            url=site_name,  # 使用站点名称作为URL，方便识别
+            priority=priority,
+            site_config={"site": site_name, "days_ago": days_ago},
+            metadata={"task_type": "ai_report_generation", "site_name": site_name, "days_ago": days_ago}
+        )
+        
+        return self.submit_task(task)
+
+    def submit_bochaai_task(self, priority: TaskPriority = TaskPriority.NORMAL) -> bool:
+        """提交 bochaai_spider 任务（无需URL与附加参数）。"""
+        if not self.redis:
+            logger.error("Redis未连接")
+            return False
+
+        task = CrawlTask(
+            spider_name="bochaai_spider",
+            url="",  # 不需要 URL
+            priority=priority,
+            site_config={},
+            metadata={"task_type": "bochaai"},
+        )
+        return self.submit_task(task)
+
 
 def main():
     """主函数 - 测试调度器"""
@@ -441,11 +476,17 @@ def main():
         ),
     ]
 
-    # 提交任务
-    print("📤 提交测试任务...")
+    # 提交爬虫任务
+    print("📤 提交测试爬虫任务...")
     for task in test_tasks:
         success = scheduler.submit_task(task)
-        print(f"   任务 {task.task_id[:8]}... : {'✅' if success else '❌'}")
+        print(f"   爬虫任务 {task.task_id[:8]}... : {'✅' if success else '❌'}")
+
+    # 提交AI报告生成任务
+    print("\n📤 提交AI报告生成任务...")
+    ai_report_site = "jxcdc" # 示例站点
+    ai_report_task_success = scheduler.submit_ai_report_task(ai_report_site, days_ago=7, priority=TaskPriority.HIGH)
+    print(f"   AI报告任务 ({ai_report_site}) : {'✅' if ai_report_task_success else '❌'}")
 
     # 获取统计信息
     print("\n📊 调度器统计:")

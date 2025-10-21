@@ -12,7 +12,7 @@ commonly used. You can find more settings consulting the documentation:
 
 import os
 from pathlib import Path
-
+from dotenv import load_dotenv
 
 # 加载.env文件中的环境变量
 def load_env_file() -> None:
@@ -47,6 +47,7 @@ def load_env_file() -> None:
 
 # 在导入时立即加载环境变量
 load_env_file()
+# load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -230,6 +231,11 @@ LIST_REFRESH_ENABLED = False
 LIST_REFRESH_INTERVAL = int(os.getenv("LIST_REFRESH_INTERVAL", 900))  # 秒
 # 内容去重
 CONTENT_DEDUP_ENABLED = True
+CONTENT_GLOBAL_DEDUP_ENABLED = os.getenv("CONTENT_GLOBAL_DEDUP_ENABLED", "True").lower() == "true"
+# 作用域：per_site | global
+CONTENT_GLOBAL_DEDUP_SCOPE = os.getenv("CONTENT_GLOBAL_DEDUP_SCOPE", "per_site")
+# 去重集合的 TTL（秒），0 或未设置表示不设置 TTL
+CONTENT_DEDUP_TTL_SECONDS = int(os.getenv("CONTENT_DEDUP_TTL_SECONDS", 0))
 
 # Database settings
 # 构建MongoDB连接URI，支持容器环境
@@ -263,7 +269,7 @@ PROMETHEUS_PORT = int(os.getenv("PROMETHEUS_PORT", 9108))
 METRICS_ENABLED = os.getenv("METRICS_ENABLED", "True").lower() == "true"
 
 # 日志配置
-LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 # LOG_FILE = os.path.join(BASE_DIR, 'logs', 'scrapy.log')
 
 # 显式设置 pymongo 日志级别

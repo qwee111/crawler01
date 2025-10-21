@@ -18,7 +18,7 @@ sqlalchemy~=2.0.43
 
 # 数据处理
 pandas==2.1.4
-numpy~=2.3.3
+numpy~=1.24.0
 lxml~=6.0.0
 beautifulsoup4~=4.13.4
 requests~=2.32.4

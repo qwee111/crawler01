@@ -288,12 +288,16 @@ class DistributedWorkerNode:
 
         try:
             logger.info(f"开始执行任务: {task_id}")
+            # 根据任务类型选择启动命令
+            task_type = (task.metadata or {}).get("task_type") if task.metadata else None
 
-            # 构建Scrapy命令
-            cmd = self.build_scrapy_command(task)
-
-            # 执行爬虫
-            result = self.run_scrapy_spider(cmd, task_id)
+            spider_name_lc = (task.spider_name or "").lower()
+            if (task_type or "").lower() == "ai_report_generation" or spider_name_lc == "ai_report_generator":
+                cmd = self.build_ai_report_command(task)
+                result = self.run_process(cmd, task_id)
+            else:
+                cmd = self.build_scrapy_command(task)
+                result = self.run_scrapy_spider(cmd, task_id)
 
             # 计算执行时间
             duration = time.time() - start_time
@@ -316,6 +320,18 @@ class DistributedWorkerNode:
 
     def build_scrapy_command(self, task: CrawlTask) -> List[str]:
         """构建Scrapy命令"""
+        # 保护：报告生成任务不应走 Scrapy
+        if (task.spider_name or "").lower() == "ai_report_generator":
+            return self.build_ai_report_command(task)
+        # bochaai_spider 不需要额外参数，使用极简命令
+        if (task.spider_name or "").lower() == "bochaai_spider":
+            return [
+                sys.executable,
+                "-m",
+                "scrapy",
+                "crawl",
+                task.spider_name,
+            ]
         cmd = [
             sys.executable,
             "-m",
@@ -334,6 +350,25 @@ class DistributedWorkerNode:
             if key != "site":
                 cmd.extend(["-s", f"{key.upper()}={value}"])
 
+        return cmd
+
+    def build_ai_report_command(self, task: CrawlTask) -> List[str]:
+        """构建 AI 报告生成命令 (python -m reports.ai_report_generator)。"""
+        site = task.site_config.get("site", "default") if task.site_config else "default"
+        days = task.site_config.get("days_ago", 7) if task.site_config else 7
+        no_pdf = task.site_config.get("no_pdf", False) if task.site_config else False
+
+        cmd = [
+            sys.executable,
+            "-m",
+            "reports.ai_report_generator",
+            "--site",
+            str(site),
+            "--days",
+            str(days),
+        ]
+        if no_pdf:
+            cmd.append("--no-pdf")
         return cmd
 
     def run_scrapy_spider(self, cmd: List[str], task_id: str) -> Dict:
@@ -433,6 +468,43 @@ class DistributedWorkerNode:
                 }
 
         except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def run_process(self, cmd: List[str], task_id: str) -> Dict:
+        """运行通用子进程（用于 AI 报告生成）。"""
+        try:
+            logger.info(f"执行命令: {' '.join(cmd)}")
+
+            env = os.environ.copy()
+            env["TASK_ID"] = task_id
+            env["SCRAPY_WORKER_ID"] = self.config.worker_id
+
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                env=env,
+            )
+            stdout, stderr = process.communicate()
+            if process.returncode == 0:
+                # 尝试从输出中解析报告保存路径
+                report_path = None
+                try:
+                    import re as _re
+
+                    m = _re.search(r"Report successfully generated and saved to:\s*(.+)", stdout)
+                    if m:
+                        report_path = m.group(1).strip()
+                except Exception:
+                    report_path = None
+
+                stats = {"report_path": report_path} if report_path else {}
+                return {"success": True, "stats": stats, "stdout": stdout, "stderr": stderr}
+            else:
+                return {"success": False, "error": f"Process exit code: {process.returncode}", "stdout": stdout, "stderr": stderr}
+        except Exception as e:
+            logger.error(f"运行进程时发生异常: {e}")
             return {"success": False, "error": str(e)}
 
     def parse_scrapy_output(self, output: str) -> Dict:

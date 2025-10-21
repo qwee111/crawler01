@@ -53,6 +53,22 @@ class SchedulerSystemManager:
 
         logger.info("调度系统管理器初始化")
 
+    def submit_ai_report_tasks(self, site_name: str, days_ago: int = 7, priority: TaskPriority = TaskPriority.NORMAL):
+        """
+        提交AI报告生成任务。
+        """
+        if not self.scheduler:
+            logger.error("调度器不可用，无法提交AI报告任务。")
+            return False
+        
+        logger.info(f"提交AI报告生成任务: 站点 '{site_name}', 过去 {days_ago} 天的数据。")
+        success = self.scheduler.submit_ai_report_task(site_name, days_ago, priority)
+        if success:
+            logger.info(f"AI报告任务提交成功: 站点 '{site_name}'")
+        else:
+            logger.error(f"AI报告任务提交失败: 站点 '{site_name}'")
+        return success
+
     def initialize_components(self):
         """初始化所有组件"""
         if not SCHEDULER_AVAILABLE:
@@ -455,6 +471,8 @@ def main():
     )
     parser.add_argument("--task-file", help="批量任务文件路径")
     parser.add_argument("--site-tasks", help="提交指定站点的所有任务")
+    parser.add_argument("--submit-ai-report", help="提交AI报告生成任务，指定站点名称 (例如: bjcdc 或 all)")
+    parser.add_argument("--ai-report-days-ago", type=int, default=7, help="AI报告生成任务的时间范围 (天数)")
 
     args = parser.parse_args()
 
@@ -490,6 +508,7 @@ def main():
         print(
             "   python start_scheduler.py --mode submit --task-file tasks.json  # 批量提交"
         )
+        print("   python start_scheduler.py --mode submit --submit-ai-report bjcdc --ai-report-days-ago 30 # 提交AI报告任务")
         print(
             "   python start_scheduler.py --mode worker --worker-id worker_001  # 启动工作节点"
         )
@@ -573,6 +592,24 @@ def main():
                 print("✅ 任务提交成功")
             else:
                 print("❌ 任务提交失败")
+
+        elif args.submit_ai_report:
+            # 提交AI报告生成任务
+            site_name = args.submit_ai_report
+            days_ago = args.ai_report_days_ago
+            if site_name == "all":
+                # 获取所有站点并提交AI报告任务
+                all_configs = manager.config_manager.get_config_versions().keys()
+                target_sites = [
+                    name.replace("sites/", "")
+                    for name in all_configs
+                    if name.startswith("sites/")
+                ]
+                logger.info(f"提交所有站点AI报告任务: {target_sites}")
+                for s_name in target_sites:
+                    manager.submit_ai_report_tasks(s_name, days_ago)
+            else:
+                manager.submit_ai_report_tasks(site_name, days_ago)
 
         else:
             # 默认提交测试任务

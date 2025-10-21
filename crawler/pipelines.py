@@ -245,6 +245,7 @@ class ContentUpdatePipeline:
 
     - 对 item['content'] 做规范化后计算 SHA256 指纹
     - Redis HASH: content_fp:<site>，field=sha1(url)，value=sha256(content)
+    - Redis SET: content_seen:<scope>，member=sha256(content)（跨URL内容去重）
     - Lua 原子脚本返回码：
         1 => created（首次出现）
         2 => modified（内容变化）
@@ -255,12 +256,26 @@ class ContentUpdatePipeline:
         self.redis_url = redis_url
         self.redis = None
         self.lua = None
+        # 去重配置（默认值，可被 settings 覆盖）
+        self.global_dedup_enabled = True
+        self.dedup_scope = "per_site"  # per_site | global
+        self.dedup_ttl_seconds = 0
 
     @classmethod
     def from_crawler(cls, crawler):
         redis_url = crawler.settings.get("REDIS_URL")
         pipe = cls(redis_url)
         pipe._connect()
+        # 读取配置项
+        try:
+            pipe.global_dedup_enabled = crawler.settings.getbool("CONTENT_GLOBAL_DEDUP_ENABLED", True)
+        except Exception:
+            pipe.global_dedup_enabled = True
+        pipe.dedup_scope = crawler.settings.get("CONTENT_GLOBAL_DEDUP_SCOPE", "per_site")
+        try:
+            pipe.dedup_ttl_seconds = int(crawler.settings.getint("CONTENT_DEDUP_TTL_SECONDS", 0))
+        except Exception:
+            pipe.dedup_ttl_seconds = 0
         return pipe
 
     def _connect(self):
@@ -318,7 +333,7 @@ class ContentUpdatePipeline:
             item["content_fingerprint"] = cfp
             return item
 
-        site = getattr(spider, "target_site", None) or "default"
+        site = (item.get("site") or item.get("site_name") or getattr(spider, "target_site", None) or spider.name or "default")
         key = f"content_fp:{site}"
         try:
             rc = self.lua(keys=[key], args=[ufield, cfp])
@@ -334,6 +349,26 @@ class ContentUpdatePipeline:
 
         if status == "unchanged":
             raise DropItem("内容未变化，丢弃以节省存储")
+
+        # 跨 URL 内容去重（基于内容指纹）。当不同 URL/标题的内容相同，仅保留首次出现
+        if self.global_dedup_enabled:
+            scope = "global" if self.dedup_scope == "global" else site
+            set_key = f"content_seen:{scope}"
+            try:
+                added = self.redis.sadd(set_key, cfp)  # 1=首次，0=已存在
+                if self.dedup_ttl_seconds > 0:
+                    try:
+                        ttl = self.redis.ttl(set_key)
+                    except Exception:
+                        ttl = -1
+                    if ttl == -1:
+                        self.redis.expire(set_key, self.dedup_ttl_seconds)
+                if added == 0:
+                    raise DropItem("跨URL内容重复，按指纹去重丢弃")
+            except DropItem:
+                raise
+            except Exception as e:
+                logger.warning(f"⚠️ 全局内容去重失败，降级通过: {e}")
         return item
 
 
