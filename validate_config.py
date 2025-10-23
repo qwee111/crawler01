@@ -64,9 +64,6 @@ class ConfigValidator:
 
         required_vars = [
             "ENVIRONMENT",
-            "POSTGRES_DB",
-            "POSTGRES_USER",
-            "POSTGRES_PASSWORD",
             "MONGODB_ROOT_USERNAME",
             "MONGODB_ROOT_PASSWORD",
             "MONGODB_DATABASE",
@@ -93,11 +90,9 @@ class ConfigValidator:
         print("🔐 检查密码强度...")
 
         password_vars = [
-            "POSTGRES_PASSWORD",
             "MONGODB_ROOT_PASSWORD",
             "REDIS_PASSWORD",
             "MONGO_EXPRESS_PASSWORD",
-            "PGADMIN_PASSWORD",
             "MINIO_ROOT_PASSWORD",
         ]
 
@@ -155,20 +150,7 @@ class ConfigValidator:
         """检查数据库配置"""
         print("🗄️ 检查数据库配置...")
 
-        # PostgreSQL
-        pg_config = {
-            "host": self.config.get("POSTGRES_HOST", "localhost"),
-            "port": self.config.get("POSTGRES_PORT", "5432"),
-            "database": self.config.get("POSTGRES_DB", ""),
-            "user": self.config.get("POSTGRES_USER", ""),
-            "password": self.config.get("POSTGRES_PASSWORD", ""),
-        }
-
-        if all(pg_config.values()):
-            print("✅ PostgreSQL配置完整")
-        else:
-            missing = [k for k, v in pg_config.items() if not v]
-            self.errors.append(f"PostgreSQL配置不完整: {', '.join(missing)}")
+        # 已移除PostgreSQL配置检查
 
         # MongoDB
         mongo_config = {

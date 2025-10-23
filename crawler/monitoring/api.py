@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-极简 REST API 提供实时指标查询（可由 Prometheus 外部拉取或运维查看）
-依赖：Flask（或 FastAPI），这里使用 Flask 以减小改动面
+（已停用）原极简 REST API。项目现不再提供 Web API。
 """
 from __future__ import annotations
 
@@ -23,42 +22,12 @@ from .metrics import (
 
 
 def create_app() -> Flask:
+    # 返回一个占位应用，避免误用
     app = Flask(__name__)
 
     @app.get("/health")
     def health() -> Dict[str, Any]:
-        return {"status": "ok"}
-
-    @app.get("/metrics/summary")
-    def metrics_summary():
-        # 提供一个大致的快照
-        data = {
-            "cpu": CPU_USAGE._value.get(),  # type: ignore[attr-defined]
-            "mem": MEM_USAGE._value.get(),  # type: ignore[attr-defined]
-        }
-        return jsonify(data)
-
-    @app.get("/metrics/requests")
-    def metrics_requests():
-        return jsonify(_collect_samples(REQUEST_TOTAL))
-
-    @app.get("/metrics/errors")
-    def metrics_errors():
-        return jsonify(_collect_samples(REQUEST_ERROR))
-
-    @app.get("/metrics/items")
-    def metrics_items():
-        return jsonify(
-            {
-                "extracted": _collect_samples(ITEM_EXTRACTED),
-                "stored": _collect_samples(ITEM_STORED),
-                "dropped": _collect_samples(ITEM_DROPPED),
-            }
-        )
-
-    @app.get("/metrics/queues")
-    def metrics_queues():
-        return jsonify(_collect_samples(QUEUE_LENGTH))
+        return {"status": "disabled"}
 
     return app
 

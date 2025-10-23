@@ -482,11 +482,15 @@ def main():
         success = scheduler.submit_task(task)
         print(f"   爬虫任务 {task.task_id[:8]}... : {'✅' if success else '❌'}")
 
-    # 提交AI报告生成任务
+    # 提交AI报告生成任务（保留AI报告系统）
     print("\n📤 提交AI报告生成任务...")
-    ai_report_site = "jxcdc" # 示例站点
-    ai_report_task_success = scheduler.submit_ai_report_task(ai_report_site, days_ago=7, priority=TaskPriority.HIGH)
-    print(f"   AI报告任务 ({ai_report_site}) : {'✅' if ai_report_task_success else '❌'}")
+    ai_report_site = "jxcdc"  # 示例站点
+    ai_report_task_success = scheduler.submit_ai_report_task(
+        ai_report_site, days_ago=7, priority=TaskPriority.HIGH
+    )
+    print(
+        f"   AI报告任务 ({ai_report_site}) : {'✅' if ai_report_task_success else '❌'}"
+    )
 
     # 获取统计信息
     print("\n📊 调度器统计:")

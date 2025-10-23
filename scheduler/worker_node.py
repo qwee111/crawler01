@@ -288,7 +288,7 @@ class DistributedWorkerNode:
 
         try:
             logger.info(f"开始执行任务: {task_id}")
-            # 根据任务类型选择启动命令
+            # 根据任务类型选择启动命令（ AI 报告或 Scrapy 爬虫）
             task_type = (task.metadata or {}).get("task_type") if task.metadata else None
 
             spider_name_lc = (task.spider_name or "").lower()

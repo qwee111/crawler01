@@ -22,24 +22,7 @@ mongodb:
     logs: "crawler_logs"
     tasks: "crawler_tasks"
 
-# PostgreSQL配置
-postgresql:
-  host: "localhost"
-  port: 5432
-  database: "crawler_db"
-  username: "postgres"
-  password: "password"
-  pool_size: 20
-  max_overflow: 30
-  pool_timeout: 30
-  pool_recycle: 3600
-
-  # 表配置
-  tables:
-    epidemic_data: "epidemic_data"
-    data_quality: "data_quality_reports"
-    crawler_stats: "crawler_statistics"
-    proxy_stats: "proxy_statistics"
+## 已移除 PostgreSQL 配置
 
 # 连接池配置
 connection_pools:
@@ -52,7 +35,4 @@ connection_pools:
     min_pool_size: 10
     max_idle_time_ms: 30000
 
-  postgresql:
-    pool_size: 20
-    max_overflow: 30
-    pool_timeout: 30
+  # 已移除 postgresql 连接池配置

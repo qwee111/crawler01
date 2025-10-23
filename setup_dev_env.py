@@ -137,14 +137,6 @@ MONGODB_URL=mongodb://localhost:27017/crawler_db
 MONGODB_USERNAME=
 MONGODB_PASSWORD=
 
-# PostgreSQL配置
-POSTGRES_URL=postgresql://postgres:password@localhost:5432/crawler_db
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_DB=crawler_db
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=password
-
 # 代理配置
 PROXY_POOL_SIZE=100
 PROXY_VALIDATION_TIMEOUT=10

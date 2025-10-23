@@ -30,11 +30,9 @@ def create_env_file():
     docker_env_path = project_root / "deployment" / "docker" / ".env"
 
     # 生成密码
-    postgres_password = generate_password()
     mongodb_password = generate_password()
     redis_password = generate_password()
     mongo_express_password = generate_password()
-    pgadmin_password = generate_password()
     minio_password = generate_password()
 
     # 生成密钥
@@ -64,13 +62,6 @@ MONGODB_DATABASE=crawler_db
 MONGODB_HOST=localhost
 MONGODB_PORT=27017
 
-# PostgreSQL配置
-POSTGRES_DB=crawler_db
-POSTGRES_USER=crawler_user
-POSTGRES_PASSWORD={postgres_password}
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-
 # MinIO配置
 MINIO_ROOT_USER=minioadmin
 MINIO_ROOT_PASSWORD={minio_password}
@@ -80,9 +71,6 @@ MINIO_PORT=9000
 # 管理界面配置
 MONGO_EXPRESS_USER=admin
 MONGO_EXPRESS_PASSWORD={mongo_express_password}
-PGADMIN_EMAIL=admin@crawler.com
-PGADMIN_PASSWORD={pgadmin_password}
-
 # 爬虫配置
 CONCURRENT_REQUESTS=16
 DOWNLOAD_DELAY=1
@@ -224,11 +212,9 @@ NOTIFICATION_SERVICE_API_KEY=
         f.write(env_content)
 
     return {
-        "postgres_password": postgres_password,
         "mongodb_password": mongodb_password,
         "redis_password": redis_password,
         "mongo_express_password": mongo_express_password,
-        "pgadmin_password": pgadmin_password,
         "minio_password": minio_password,
         "env_path": env_path,
         "docker_env_path": docker_env_path,
@@ -251,11 +237,9 @@ def main():
 
         print("🔐 生成的密码 (请妥善保管):")
         print("-" * 30)
-        print(f"PostgreSQL密码: {result['postgres_password']}")
         print(f"MongoDB密码: {result['mongodb_password']}")
         print(f"Redis密码: {result['redis_password']}")
         print(f"MongoDB管理界面密码: {result['mongo_express_password']}")
-        print(f"pgAdmin密码: {result['pgadmin_password']}")
         print(f"MinIO密码: {result['minio_password']}")
         print()
 

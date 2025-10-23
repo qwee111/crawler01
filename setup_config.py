@@ -118,18 +118,7 @@ class ConfigWizard:
         print("🗄️ 2. 数据库配置")
         print("-" * 30)
 
-        # PostgreSQL配置
-        print("PostgreSQL 配置:")
-        self.config["POSTGRES_DB"] = self.ask_input("数据库名", "crawler_db")
-        self.config["POSTGRES_USER"] = self.ask_input("用户名", "crawler_user")
-
-        if self.ask_yes_no("自动生成PostgreSQL密码?"):
-            self.config["POSTGRES_PASSWORD"] = self.generate_secure_password()
-            print(f"✅ 已生成密码: {self.config['POSTGRES_PASSWORD']}")
-        else:
-            self.config["POSTGRES_PASSWORD"] = self.ask_input(
-                "PostgreSQL密码", required=True, password=True
-            )
+        # 已移除PostgreSQL配置
 
         # MongoDB配置
         print("\nMongoDB 配置:")
@@ -182,13 +171,7 @@ class ConfigWizard:
                 "MongoDB Express密码", password=True
             )
 
-        # pgAdmin
-        self.config["PGADMIN_EMAIL"] = self.ask_input("pgAdmin邮箱", "admin@crawler.com")
-        if self.ask_yes_no("自动生成pgAdmin密码?"):
-            self.config["PGADMIN_PASSWORD"] = self.generate_secure_password()
-            print(f"✅ pgAdmin密码: {self.config['PGADMIN_PASSWORD']}")
-        else:
-            self.config["PGADMIN_PASSWORD"] = self.ask_input("pgAdmin密码", password=True)
+        # 已移除 pgAdmin 配置
 
         # MinIO
         if self.ask_yes_no("自动生成MinIO密码?"):
@@ -287,8 +270,6 @@ class ConfigWizard:
             "REDIS_DB": "0",
             "MONGODB_HOST": "localhost",
             "MONGODB_PORT": "27017",
-            "POSTGRES_HOST": "localhost",
-            "POSTGRES_PORT": "5432",
             "MINIO_ROOT_USER": "minioadmin",
             "MINIO_HOST": "localhost",
             "MINIO_PORT": "9000",
@@ -341,7 +322,7 @@ class ConfigWizard:
         print("📋 配置摘要")
         print("=" * 50)
         print(f"环境: {self.config.get('ENVIRONMENT', 'development')}")
-        print(f"PostgreSQL用户: {self.config.get('POSTGRES_USER', 'crawler_user')}")
+        # 已移除PostgreSQL用户输出
         print(f"MongoDB用户: {self.config.get('MONGODB_ROOT_USERNAME', 'admin')}")
         print(f"Redis密码: {'已设置' if self.config.get('REDIS_PASSWORD') else '未设置'}")
         print(f"邮件告警: {'已配置' if self.config.get('SMTP_USERNAME') else '未配置'}")
@@ -350,16 +331,14 @@ class ConfigWizard:
 
         print("🔐 重要信息 (请妥善保管)")
         print("-" * 30)
-        if self.config.get("POSTGRES_PASSWORD"):
-            print(f"PostgreSQL密码: {self.config['POSTGRES_PASSWORD']}")
+        # 已移除PostgreSQL密码输出
         if self.config.get("MONGODB_ROOT_PASSWORD"):
             print(f"MongoDB密码: {self.config['MONGODB_ROOT_PASSWORD']}")
         if self.config.get("REDIS_PASSWORD"):
             print(f"Redis密码: {self.config['REDIS_PASSWORD']}")
         if self.config.get("MONGO_EXPRESS_PASSWORD"):
             print(f"MongoDB管理界面密码: {self.config['MONGO_EXPRESS_PASSWORD']}")
-        if self.config.get("PGADMIN_PASSWORD"):
-            print(f"pgAdmin密码: {self.config['PGADMIN_PASSWORD']}")
+        # 已移除pgAdmin密码输出
         if self.config.get("MINIO_ROOT_PASSWORD"):
             print(f"MinIO密码: {self.config['MINIO_ROOT_PASSWORD']}")
         print()

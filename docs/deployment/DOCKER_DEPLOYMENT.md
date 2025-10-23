@@ -95,9 +95,6 @@ REDIS_PASSWORD=your_redis_password
 MONGODB_ROOT_USERNAME=admin
 MONGODB_ROOT_PASSWORD=password
 MONGODB_DATABASE=crawler_db
-POSTGRES_DB=crawler_db
-POSTGRES_USER=crawler_user
-POSTGRES_PASSWORD=crawler_pass
 MINIO_ROOT_USER=minioadmin
 MINIO_ROOT_PASSWORD=minioadmin123
 PGADMIN_EMAIL=admin@crawler.com
@@ -166,7 +163,6 @@ docker compose down
 3.  **访问管理界面 (如果启动了 `tools` profile):**
     *   **Redis Commander:** `http://your_server_ip:8081`
     *   **Mongo Express:** `http://your_server_ip:8082`
-    *   **pgAdmin:** `http://your_server_ip:8083`
     *   **MinIO Console:** `http://your_server_ip:9001`
     *   **Selenium Grid Hub:** `http://your_server_ip:4444`
 

@@ -1,6 +1,6 @@
 # 分布式疫情信息爬虫系统
 
-一个基于Scrapy-Redis的分布式爬虫系统，专注于收集和处理全国各级疾控中心和卫生部门的疫情信息。
+一个基于 Scrapy-Redis 的分布式爬虫系统，专注于收集和处理全国各级疾控中心和卫生部门的疫情信息；内置 AI 报告生成系统（支持智谱 GLM），保留 MongoDB 持久化。
 
 [![Python Version](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -16,13 +16,13 @@
 - **数据质量保障**：内置数据验证、清洗和标准化流程
 - **实时监控**：集成Prometheus和Grafana监控系统
 - **容器化部署**：支持Docker和Kubernetes部署
+- **AI 报告生成**：`reports/ai_report_generator.py` 基于 Mongo 数据生成态势报告（可导出 PDF）
 
 ## 环境要求
 
 - Python 3.9+
 - Redis 5.0+
 - MongoDB 4.0+
-- PostgreSQL 12+
 - Docker (可选，用于Selenium Grid)
 - Windows 10/11, Linux 或 macOS
 
@@ -95,11 +95,33 @@ python start_phase2.py
 
 ### 4. 查看结果
 
-爬取的数据将存储在MongoDB中，默认数据库为`crawler`，集合为`epidemic_data`。
+爬取的数据将存储在 MongoDB 中（默认数据库 `crawler_db`；集合名为 `<site>_data`，例如 `bjcdc_data`）。
+
+### 5. 生成 AI 报告（可选）
+
+方式 A：命令行直接生成（推荐）
+
+```bash
+# 需要配置环境变量 ZHIPUAI_API_KEY；Mongo 连接通过 MONGODB_URL/MONGODB_DATABASE（可选）
+python -m reports.ai_report_generator --site bjcdc --days 7 --mongo-uri "mongodb://localhost:27017/" --db crawler_db
+
+# 禁用 PDF 导出
+python -m reports.ai_report_generator --site bjcdc --days 7 --no-pdf
+```
+
+方式 B：通过调度器/工作节点异步生成
+
+```bash
+# 提交 AI 报告任务（使用 Redis 队列）
+python scheduler/task_scheduler.py   # 脚本内包含 submit_ai_report_task 示例
+
+# 启动工作节点（会自动拉取任务并执行 AI 报告生成）
+python scheduler/worker_node.py
+```
 
 ## Docker部署
 
-项目支持完整的Docker容器化部署，包括所有依赖服务和爬虫应用本身。
+项目支持完整的 Docker 容器化部署（Redis、MongoDB、MinIO、Selenium 等）。
 
 ### 启动所有服务
 
@@ -107,7 +129,7 @@ python start_phase2.py
 # 进入Docker部署目录
 cd deployment/docker
 
-# 启动所有基础服务（Redis、MongoDB、PostgreSQL）
+# 启动所有基础服务（Redis、MongoDB）
 docker-compose up -d
 
 # 启动包括Selenium Grid在内的所有服务
@@ -127,13 +149,12 @@ docker-compose up -d crawler
 docker-compose run --rm crawler scrapy crawl adaptive -a site=nhc
 ```
 
-### 访问管理界面
-
-当使用`--profile tools`启动时，可以通过以下地址访问管理界面：
+### 管理工具（可选）
+当使用 `--profile tools` 启动时，可以通过以下地址访问：
 - Redis Commander: http://localhost:8081
 - Mongo Express: http://localhost:8082
-- pgAdmin: http://localhost:8083
 
+> 提示：本项目不再提供 Web 前后端与 API 访问；已移除 `monitoring/alert_system.py`（数据分析驱动告警）。
 ## 详细文档
 
 - [系统设计文档](系统设计.md) - 系统架构和设计思路
@@ -144,10 +165,10 @@ docker-compose run --rm crawler scrapy crawl adaptive -a site=nhc
 
 ## 配置说明
 
-系统主要配置文件位于`config/`目录下：
+系统主要配置文件位于 `config/` 目录下：
 
 - `config/sites/` - 各网站的采集规则配置
-- `config/database.yaml` - 数据库连接配置
+- `config/database.yaml` - 数据库连接配置（仅保留 Mongo）
 - `config/proxy.yaml` - 代理配置
 - `config/nhc_firefox_config.yaml` - NHC网站Firefox配置
 
@@ -196,6 +217,8 @@ crawler_system/
 ├── anti_crawl/             # 反爬模块
 ├── data_processing/        # 数据处理
 ├── monitoring/             # 监控模块
+├── reports/                # 报告系统（AI 报告生成）
+│   └── ai_report_generator.py
 └── deployment/             # 部署配置
 ```
 

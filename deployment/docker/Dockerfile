@@ -1,5 +1,5 @@
 # 使用官方Python运行时作为父镜像
-FROM python:3.9-slim-buster
+FROM python:3.11-slim-buster
 
 # 设置工作目录
 WORKDIR /app

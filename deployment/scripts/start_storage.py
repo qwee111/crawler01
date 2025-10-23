@@ -94,11 +94,6 @@ MONGODB_ROOT_USERNAME=admin
 MONGODB_ROOT_PASSWORD=password123
 MONGODB_DATABASE=crawler_db
 
-# PostgreSQL配置
-POSTGRES_DB=crawler_db
-POSTGRES_USER=crawler_user
-POSTGRES_PASSWORD=crawler_pass123
-
 # MinIO配置
 MINIO_ROOT_USER=minioadmin
 MINIO_ROOT_PASSWORD=minioadmin123
@@ -106,8 +101,7 @@ MINIO_ROOT_PASSWORD=minioadmin123
 # 管理界面配置
 MONGO_EXPRESS_USER=admin
 MONGO_EXPRESS_PASSWORD=admin123
-PGADMIN_EMAIL=admin@crawler.com
-PGADMIN_PASSWORD=admin123
+# 已移除 pgAdmin 配置
 """
 
             with open(env_file, "w", encoding="utf-8") as f:
@@ -279,32 +273,7 @@ PGADMIN_PASSWORD=admin123
             logger.debug(f"MongoDB连接失败: {e}")
             return False
 
-    def check_postgresql(self) -> bool:
-        """检查PostgreSQL服务"""
-        try:
-            import psycopg2
-
-            # 从环境变量读取PostgreSQL配置
-            postgres_user = os.getenv("POSTGRES_USER", "crawler_user")
-            postgres_password = os.getenv("POSTGRES_PASSWORD", "crawler_pass123")
-            postgres_db = os.getenv("POSTGRES_DB", "crawler_db")
-
-            conn = psycopg2.connect(
-                host="localhost",
-                port=5432,
-                database=postgres_db,
-                user=postgres_user,
-                password=postgres_password,
-                connect_timeout=5,
-            )
-            conn.close()
-            return True
-        except ImportError:
-            logger.warning("psycopg2库未安装，跳过PostgreSQL连接检查")
-            return True  # 假设服务正常
-        except Exception as e:
-            logger.debug(f"PostgreSQL连接失败: {e}")
-            return False
+    # 已移除 PostgreSQL 检查
 
     def show_service_status(self):
         """显示服务状态"""
@@ -388,13 +357,7 @@ PGADMIN_PASSWORD=admin123
         print("  Username: admin")
         print("  Password: password123")
         print()
-        print("PostgreSQL:")
-        print("  Host: localhost")
-        print("  Port: 5432")
-        print("  Database: crawler_db")
-        print("  Username: crawler_user")
-        print("  Password: crawler_pass123")
-        print()
+        # 已移除 PostgreSQL 连接信息
         print("MinIO:")
         print("  Host: localhost")
         print("  Port: 9000 (API), 9001 (Console)")
@@ -404,7 +367,7 @@ PGADMIN_PASSWORD=admin123
         print("管理界面:")
         print("  Redis Commander: http://localhost:8081")
         print("  Mongo Express: http://localhost:8082")
-        print("  pgAdmin: http://localhost:8083")
+        # 已移除 pgAdmin 地址
 
 
 def main():

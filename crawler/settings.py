@@ -97,7 +97,7 @@ DEFAULT_REQUEST_HEADERS = {
 # Enable or disable downloader middlewares
 DOWNLOADER_MIDDLEWARES = {
     # 第一阶段中间件
-    "crawler.middlewares.ProxyMiddleware": 350,
+    # "crawler.middlewares.ProxyMiddleware": 350,
     "crawler.middlewares.CustomUserAgentMiddleware": 400,
     "crawler.middlewares.CustomRetryMiddleware": 550,
     "crawler.middlewares.CrawlerDownloaderMiddleware": 543,
@@ -113,7 +113,7 @@ DOWNLOADER_MIDDLEWARES = {
 EXTENSIONS = {
     "scrapy.extensions.telnet.TelnetConsole": None,
     "crawler.monitoring.scrapy_ext.MetricsExtension": 500,
-    # 'crawler.extensions.PrometheusExtension': 600,
+    'crawler.extensions.PrometheusExtension': 600,
     "crawler.extensions.RedisSpiderSmartIdleClosedExensions": 700,
 }
 
@@ -132,7 +132,6 @@ ITEM_PIPELINES = {
     "crawler.pipelines.ContentUpdatePipeline": 590,
     # 存储管道
     "crawler.pipelines.MongoPipeline": 600,
-    # 'crawler.pipelines.PostgresPipeline': 700,
 }
 
 # 下载文件与图片的本地存储目录（保持根目录）
@@ -254,11 +253,7 @@ else:
 MONGODB_URI = os.getenv("MONGODB_URL", MONGODB_URI)
 MONGODB_DATABASE = os.getenv("MONGODB_DATABASE", "crawler_db")
 
-POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
-POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", 5432))
-POSTGRES_DATABASE = os.getenv("POSTGRES_DB", "crawler_db")
-POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres")
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "123456")
+# 已移除PostgreSQL配置（仅保留MongoDB）
 
 # 代理池配置
 PROXY_POOL_SIZE = int(os.getenv("PROXY_POOL_SIZE", 100))
@@ -270,7 +265,7 @@ METRICS_ENABLED = os.getenv("METRICS_ENABLED", "True").lower() == "true"
 
 # 日志配置
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-# LOG_FILE = os.path.join(BASE_DIR, 'logs', 'scrapy.log')
+LOG_FILE = os.path.join(BASE_DIR, 'logs', 'scrapy.log')
 
 # 显式设置 pymongo 日志级别
 import logging

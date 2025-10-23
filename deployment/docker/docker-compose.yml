@@ -15,7 +15,7 @@ services:
     networks:
       - crawler_network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -55,36 +55,6 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # PostgreSQL服务 - 用于结构化数据存储
-  postgresql:
-    image: postgres:15
-    container_name: crawler_postgresql
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./postgresql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-      - ./postgresql/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-    restart: unless-stopped
-    networks:
-      - crawler_network
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB:-crawler_db}
-      - POSTGRES_USER=${POSTGRES_USER:-crawler_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-crawler_pass}
-      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
-    command: postgres -c config_file=/etc/postgresql/postgresql.conf
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-crawler_user} -d ${POSTGRES_DB:-crawler_db}"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
   # MinIO服务 - 用于文件存储
   minio:
     image: minio/minio:latest
@@ -102,7 +72,7 @@ services:
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin123}
     command: server /data --console-address ":9001"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -145,25 +115,6 @@ services:
       - crawler_network
     depends_on:
       - mongodb
-    restart: unless-stopped
-    profiles:
-      - tools
-
-  # pgAdmin - PostgreSQL管理界面
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: crawler_pgadmin
-    ports:
-      - "8083:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@crawler.com}
-      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin123}
-    networks:
-      - crawler_network
-    depends_on:
-      - postgresql
     restart: unless-stopped
     profiles:
       - tools
@@ -248,7 +199,6 @@ services:
     depends_on:
       - redis
       - mongodb
-      - postgresql
       - selenium-hub # 如果爬虫需要Selenium
     environment:
       # 传递环境变量，例如数据库连接信息
@@ -256,17 +206,12 @@ services:
       REDIS_PORT: 6379
       MONGODB_HOST: mongodb
       MONGODB_PORT: 27017
-      POSTGRES_HOST: postgresql
-      POSTGRES_PORT: 5432
       SELENIUM_HUB_URL: http://selenium-hub:4444/wd/hub
       # 从.env文件加载其他环境变量
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       MONGODB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME:-admin}
       MONGODB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD:-password}
       MONGODB_DATABASE: ${MONGODB_DATABASE:-crawler_db}
-      POSTGRES_DB: ${POSTGRES_DB:-crawler_db}
-      POSTGRES_USER: ${POSTGRES_USER:-crawler_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-crawler_pass}
     command: python start_scheduler.py # 启动调度器
     restart: unless-stopped
 
@@ -298,12 +243,10 @@ volumes:
     driver: local
   mongodb_config:
     driver: local
-  postgres_data:
-    driver: local
+
   minio_data:
     driver: local
-  pgadmin_data:
-    driver: local
+
   selenium_data:
     driver: local
 # nginx_logs:

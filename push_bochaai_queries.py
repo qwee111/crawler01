@@ -177,7 +177,7 @@ if __name__ == "__main__":
     parser.add_argument("--summary", type=bool, default=True, help="是否包含摘要。")
     parser.add_argument("--include", type=str, help="包含特定内容。")
     parser.add_argument("--exclude", type=str, help="排除特定内容。")
-    parser.add_argument("--count", type=int, default=10, help="返回结果的数量。")
+    parser.add_argument("--count", type=int, default=50, help="返回结果的数量。")
     parser.add_argument("--api_key", type=str, help="Bochaai API KEY。如果未提供，将从 .env 文件中获取 API_TOKEN。")
 
     args = parser.parse_args()

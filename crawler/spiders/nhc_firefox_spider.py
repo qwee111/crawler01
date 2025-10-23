@@ -48,7 +48,6 @@ class NHCFirefoxSpider(scrapy.Spider):
             "crawler.pipelines.CleaningPipeline": 200,
             "crawler.pipelines.DuplicatesPipeline": 300,
             "crawler.pipelines.MongoPipeline": 400,
-            "crawler.pipelines.PostgresPipeline": 450,  # 添加PostgreSQL Pipeline
             "crawler.pipelines.JsonWriterPipeline": 500,
         },
         # 禁用一些不需要的中间件

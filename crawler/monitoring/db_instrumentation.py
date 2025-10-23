@@ -12,36 +12,8 @@ from .metrics import DB_POOL_INUSE, DB_POOL_SIZE, ENV, INSTANCE
 
 
 def instrument_sqlalchemy_engine(engine: Any, db: str = "postgres") -> None:
-    try:
-        from sqlalchemy import event
-    except Exception:
-        return
-
-    # 记录池大小（若可用）
-    try:
-        size = getattr(engine.pool, "size", None)
-        if callable(size):
-            DB_POOL_SIZE.labels(db, ENV, INSTANCE).set(size())
-    except Exception:
-        pass
-
-    def _on_checkout(dbapi_con, con_record, con_proxy):  # type: ignore[no-redef]
-        try:
-            DB_POOL_INUSE.labels(db, ENV, INSTANCE).inc()
-        except Exception:
-            pass
-
-    def _on_checkin(dbapi_con, con_record):  # type: ignore[no-redef]
-        try:
-            DB_POOL_INUSE.labels(db, ENV, INSTANCE).dec()
-        except Exception:
-            pass
-
-    try:
-        event.listen(engine, "checkout", _on_checkout)
-        event.listen(engine, "checkin", _on_checkin)
-    except Exception:
-        pass
+    # 已移除 SQLAlchemy 监控（无关系型数据库）
+    return
 
 
 def instrument_mongo_client(client: Any, db: str = "mongodb") -> None:
